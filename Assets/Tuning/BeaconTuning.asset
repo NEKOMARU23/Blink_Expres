@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 364d87867f066d9499458096cfa388e3, type: 3}
+  m_Name: BeaconTuning
+  m_EditorClassIdentifier: BlinkExpress::BlinkExpress.Tuning.BeaconTuning
+  _baseSpeedMps: 70
+  _gravityMps2: 45
+  _lifetimeSec: 2
+  _cooldownSec: 0.35
+  _throwOriginHeightM: 1.6
+  _warpBoostMps: 3
+  _chainBoostMps: 3
+  _slowFactor: 0.25
+  _gaugeStartValue: 0.7
+  _aimCost: 0.08
+  _aimDrainPerSec: 0.15
+  _aimRegenPerSec: 0.05
