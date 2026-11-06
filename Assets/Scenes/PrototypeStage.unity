@@ -119,6 +119,56 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &232099258
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 232099260}
+  - component: {fileID: 232099259}
+  m_Layer: 0
+  m_Name: Beacon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &232099259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 232099258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b322b5e374873a94187208bea043bf5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BlinkExpress::BlinkExpress.Beacon.View.BeaconView
+  _tuning: {fileID: 11400000, guid: f64b9e56f4c8c704e919368dc31b9094, type: 2}
+  _player: {fileID: 280309102}
+  _camera: {fileID: 410912951}
+  _warpMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!4 &232099260
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 232099258}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &280309101
 GameObject:
   m_ObjectHideFlags: 0
@@ -153,6 +203,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: BlinkExpress::BlinkExpress.Player.View.PlayerView
   _tuning: {fileID: 11400000, guid: 83b4d7c4e080d614e8dd67fb8cb1cc29, type: 2}
   _chaseCamera: {fileID: 410912949}
+  _beacon: {fileID: 232099259}
 --- !u!143 &280309103
 CharacterController:
   m_ObjectHideFlags: 0
@@ -609,3 +660,4 @@ SceneRoots:
   - {fileID: 614411101}
   - {fileID: 827760022}
   - {fileID: 280309106}
+  - {fileID: 232099260}

@@ -96,6 +96,29 @@ namespace BlinkExpress.Tests
         }
 
         [Test]
+        public void SetDirectionSetsHeadingAndSpeed()
+        {
+            // ワープの着地で、向きと速さを設定できる（+X 方向、速さ 20 m/s）
+            var model = new PlayerMovementModel(CreateSettings());
+
+            model.SetDirection(1f, 0f, 0f, 20f);
+
+            Assert.That(model.SpeedMps, Is.EqualTo(20f).Within(0.01f));
+            Assert.That(model.YawRad, Is.EqualTo((float)(Math.PI / 2)).Within(0.001f));
+        }
+
+        [Test]
+        public void SetSpeedKeepsHeading()
+        {
+            var model = new PlayerMovementModel(CreateSettings());
+
+            model.SetSpeed(40f);
+
+            Assert.That(model.SpeedMps, Is.EqualTo(40f).Within(0.01f));
+            Assert.That(model.YawRad, Is.EqualTo(0f).Within(0.001f));
+        }
+
+        [Test]
         public void LandingKeepsSpeedAboveCruiseSpeed()
         {
             // ワープなどで上限より速いまま着地しても、減速要因がなければ速さは保たれる
