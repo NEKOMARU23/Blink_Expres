@@ -460,6 +460,24 @@ namespace BlinkExpress.Player.View
             _controller.enabled = true;
         }
 
+        /// <summary>進む向きの水平角（rad）。0 は +Z 方向。</summary>
+        public float YawRad => _presenter != null ? _presenter.YawRad : 0f;
+
+        /// <summary>
+        /// 走りを最初からやり直す。速さと向きを開始時の値に戻し、指定の位置に置く。
+        /// </summary>
+        /// <param name="position">開始の位置（m）。</param>
+        public void ResetToStart(Vector3 position)
+        {
+            if (_tuning == null)
+            {
+                return;
+            }
+
+            _presenter = new PlayerPresenter(this, _tuning.ToMovementSettings());
+            Teleport(position);
+        }
+
         /// <summary>
         /// CharacterController で体を動かす。
         /// </summary>
