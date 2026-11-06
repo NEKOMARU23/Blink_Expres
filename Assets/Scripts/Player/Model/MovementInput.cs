@@ -11,12 +11,27 @@ namespace BlinkExpress.Player.Model
         /// <param name="brake">ブレーキ（S）を押しているか。</param>
         /// <param name="cameraYawRad">カメラの水平角（rad）。進む向きはここへ曲がる。</param>
         /// <param name="leanDirection">寄せる向き。左（A）で +1、右（D）で −1、なしで 0。</param>
-        public MovementInput(bool brake, float cameraYawRad, float leanDirection)
+        /// <param name="jumpPressed">このフレームでジャンプ（Space）を押したか。</param>
+        /// <param name="slideHeld">スライディングのキー（Shift か C）を押しているか。</param>
+        /// <param name="canStand">頭の上に天井が無く、立ち上がれるか。</param>
+        public MovementInput(bool brake, float cameraYawRad, float leanDirection, bool jumpPressed = false, bool slideHeld = false, bool canStand = true)
         {
             Brake = brake;
             CameraYawRad = cameraYawRad;
             LeanDirection = leanDirection;
+            JumpPressed = jumpPressed;
+            SlideHeld = slideHeld;
+            CanStand = canStand;
         }
+
+        /// <summary>このフレームでジャンプ（Space）を押したか。地上ならジャンプ、空中なら二段ジャンプ。</summary>
+        public bool JumpPressed { get; }
+
+        /// <summary>スライディングのキーを押しているか。</summary>
+        public bool SlideHeld { get; }
+
+        /// <summary>立ち上がれるか（頭の上に天井が無いか）。</summary>
+        public bool CanStand { get; }
 
         /// <summary>ブレーキ（S）を押しているか。</summary>
         public bool Brake { get; }
