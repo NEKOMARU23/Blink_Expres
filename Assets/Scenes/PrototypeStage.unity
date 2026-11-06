@@ -45858,7 +45858,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BlinkExpress::BlinkExpress.Stage.View.StageRun
   _chaser: {fileID: 1798382386}
-  _chaserSpeedMps: 26
+  _chaserSpeedMps: 20
   _chaserDelaySec: 1.5
   _chaserStartZ: -50
   _chaserCatchGapM: 1.5
