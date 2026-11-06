@@ -2,6 +2,7 @@ using BlinkExpress.Beacon.Model;
 using BlinkExpress.Beacon.View;
 using BlinkExpress.Player.Model;
 using BlinkExpress.Player.Presenter;
+using BlinkExpress.Stage.View;
 using BlinkExpress.Tuning;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -47,6 +48,17 @@ namespace BlinkExpress.Player.View
         private float _ignoreWallUntilSec;
         private bool _wasOnWall;
 
+        // 仕掛け：登れない障害物と天井は、移動の中の衝突で記録し、次のフレームに渡す
+        private float _obstacleIntoDot;
+        private bool _ceilingHit;
+        private GrindRail[] _grindRails;
+        private bool _onRail;
+        private Vector3 _railSnapPoint;
+        private float _railBlockedUntilSec;
+
+        /// <summary>レールから降りたあと、同じレールに乗り直さない時間（秒）。</summary>
+        private const float RailRelockSec = 0.4f;
+
         /// <summary>地面に立っているか（CharacterController の判定）。</summary>
         public bool IsGrounded => _controller.isGrounded;
 
@@ -69,6 +81,7 @@ namespace BlinkExpress.Player.View
             }
 
             _presenter = new PlayerPresenter(this, _tuning.ToMovementSettings());
+            _grindRails = FindObjectsByType<GrindRail>(FindObjectsSortMode.None);
         }
 
         private void Update()
@@ -81,14 +94,30 @@ namespace BlinkExpress.Player.View
 
             var lean = (keyboard.aKey.isPressed ? 1f : 0f) - (keyboard.dKey.isPressed ? 1f : 0f);
             var slideHeld = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed || keyboard.cKey.isPressed;
+            var jumpPressed = keyboard.spaceKey.wasPressedThisFrame;
+
+            // レールの上でジャンプしたら、少しの間は同じレールに乗り直さない
+            if (_onRail && jumpPressed)
+            {
+                _railBlockedUntilSec = Time.time + RailRelockSec;
+            }
+
+            var hazard = ReadHazardContact();
             var input = new MovementInput(
                 keyboard.sKey.isPressed,
                 _chaseCamera.YawRad,
                 lean,
-                keyboard.spaceKey.wasPressedThisFrame,
+                jumpPressed,
                 slideHeld,
                 HeadClear(),
-                ReadWallContact());
+                ReadWallContact(),
+                hazard);
+
+            // レールの上では、レールの線の上に体を置いてから動かす
+            if (_onRail)
+            {
+                Teleport(_railSnapPoint);
+            }
 
             // 照準中はゲーム内時間が遅くなるので、プレイヤーの移動もそれに合わせる
             var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f);
@@ -129,27 +158,134 @@ namespace BlinkExpress.Player.View
         }
 
         /// <summary>
-        /// 体が当たったときに呼ばれる（CharacterController の移動の中）。登れる壁なら記録する。
+        /// 体が当たったときに呼ばれる（CharacterController の移動の中）。
+        /// 天井、登れる壁、登れない障害物（紫の壁や倒木）のどれかを記録する。
         /// </summary>
         private void OnControllerColliderHit(ControllerColliderHit hit)
         {
-            // 地面と天井は壁ではない
-            if (hit.normal.y > 0.5f || hit.normal.y < -0.5f)
+            if (hit.normal.y < -0.5f)
+            {
+                _ceilingHit = true;
+                return;
+            }
+
+            // 地面は壁ではない
+            if (hit.normal.y > 0.5f)
             {
                 return;
             }
 
             var bounds = hit.collider.bounds;
-            var climbable = bounds.size.y > ClimbableWallHeightM && transform.position.y < bounds.max.y - 1f;
-            if (!climbable)
+            var noWarp = hit.collider.TryGetComponent(out WarpSurface surface) && surface.Kind == HitKind.NoWarpSurface;
+            var climbable = !noWarp && bounds.size.y > ClimbableWallHeightM && transform.position.y < bounds.max.y - 1f;
+            if (climbable)
             {
+                _wallTouching = true;
+                _wallNormalX = hit.normal.x;
+                _wallNormalZ = hit.normal.z;
+                _wallTopY = bounds.max.y;
                 return;
             }
 
-            _wallTouching = true;
-            _wallNormalX = hit.normal.x;
-            _wallNormalZ = hit.normal.z;
-            _wallTopY = bounds.max.y;
+            // 登れない障害物に正面から当たったときは、進む向きと面の内積を記録する
+            var yaw = _presenter.YawRad;
+            var forward = new Vector3(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
+            var into = -Vector3.Dot(forward, new Vector3(hit.normal.x, 0f, hit.normal.z));
+            if (into > _obstacleIntoDot)
+            {
+                _obstacleIntoDot = into;
+            }
+        }
+
+        /// <summary>
+        /// 仕掛けに触れている状態を作る。障害物と天井の記録は、読んだ後に消す。
+        /// </summary>
+        private HazardContact ReadHazardContact()
+        {
+            var feet = transform.position;
+            var onMud = TouchesZone(feet + Vector3.up * 0.2f, 0.3f, HazardZone.Kind.Mud);
+            var nearMushroom = TouchesZone(feet + Vector3.up * 0.6f, 0.5f, HazardZone.Kind.Mushroom);
+            var onRail = FindRail(out var railDirX, out var railDirZ);
+            _onRail = onRail;
+
+            var obstacle = _obstacleIntoDot;
+            var ceiling = _ceilingHit;
+            _obstacleIntoDot = 0f;
+            _ceilingHit = false;
+
+            return new HazardContact(onMud, nearMushroom, onRail, railDirX, railDirZ, obstacle, ceiling);
+        }
+
+        /// <summary>
+        /// 指定の範囲に、指定の種類の仕掛けが重なっているか。
+        /// </summary>
+        private bool TouchesZone(Vector3 center, float radius, HazardZone.Kind kind)
+        {
+            var colliders = Physics.OverlapSphere(center, radius, ~0, QueryTriggerInteraction.Collide);
+            foreach (var collider in colliders)
+            {
+                if (collider.transform.IsChildOf(transform))
+                {
+                    continue;
+                }
+
+                if (collider.TryGetComponent(out HazardZone zone) && zone.KindOfZone == kind)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 体がレールの近くにあるか。近ければ、レールに沿った進む向きと、レールの上の点を記録する。
+        /// </summary>
+        private bool FindRail(out float dirX, out float dirZ)
+        {
+            dirX = 0f;
+            dirZ = 0f;
+            if (Time.time < _railBlockedUntilSec)
+            {
+                return false;
+            }
+
+            var p = transform.position;
+            foreach (var rail in _grindRails)
+            {
+                var a = rail.StartPoint;
+                var d = rail.EndPoint - a;
+                var length2 = d.sqrMagnitude;
+                if (length2 < 1e-4f)
+                {
+                    continue;
+                }
+
+                var t = Mathf.Clamp01(Vector3.Dot(p - a, d) / length2);
+                var q = a + d * t;
+                var horizontal = new Vector2(q.x - p.x, q.z - p.z).magnitude;
+                var dy = p.y - q.y;
+                if (horizontal > 1.1f || dy < -1f || dy > 1.4f)
+                {
+                    continue;
+                }
+
+                // 乗ったときの向きに近い側へ進む
+                var heading = new Vector3(d.x, 0f, d.z).normalized;
+                var yaw = _presenter.YawRad;
+                var forward = new Vector3(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
+                if (Vector3.Dot(heading, forward) < 0f)
+                {
+                    heading = -heading;
+                }
+
+                dirX = heading.x;
+                dirZ = heading.z;
+                _railSnapPoint = q;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

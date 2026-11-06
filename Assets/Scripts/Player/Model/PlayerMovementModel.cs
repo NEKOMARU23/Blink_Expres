@@ -26,6 +26,9 @@ namespace BlinkExpress.Player.Model
         private float _wallNormalZ;
         private float _runTimeLeft;
         private bool _climbKickUsed;
+        private bool _mushroomLatched;
+        private bool _obstacleLatched;
+        private bool _ceilingLatched;
 
         /// <summary>壁の上での状態。</summary>
         private enum WallMode
@@ -111,6 +114,14 @@ namespace BlinkExpress.Player.Model
                 return;
             }
 
+            // レールに乗っている間は、レールの向きへ進む（ジャンプで降りる）
+            if (input.Hazard.OnRail && !input.JumpPressed)
+            {
+                TickRail(input, dt);
+                ClampSpeed();
+                return;
+            }
+
             if (grounded)
             {
                 // 着地したら、二段ジャンプを使えるようにする
@@ -131,7 +142,95 @@ namespace BlinkExpress.Player.Model
             }
 
             TryStartWall(input, grounded);
+            TryMushroom(input.Hazard);
+            TryObstacle(input.Hazard);
+            TryCeiling(input.Hazard);
             ClampSpeed();
+        }
+
+        /// <summary>
+        /// レールの上の移動。レールの向きへ進み、速さは毎秒 RailAccelMps2 ずつ増える（上限まで）。
+        /// </summary>
+        private void TickRail(MovementInput input, float dt)
+        {
+            var speed = Math.Min(_settings.MaxSpeedMps, SpeedMps + _settings.RailAccelMps2 * dt);
+            _sliding = false;
+            _doubleJumpUsed = false;
+            var yaw = (float)Math.Atan2(input.Hazard.RailDirX, input.Hazard.RailDirZ);
+            SetVelocity(speed, yaw, 0f);
+        }
+
+        /// <summary>
+        /// 跳ねるキノコを踏んだ瞬間に跳ねる。速さは保ち、上向きの速さは min(速さ × 0.9, 24) m/s。
+        /// 二段ジャンプも戻る。踏み続けている間は一度だけ。
+        /// </summary>
+        private void TryMushroom(HazardContact hazard)
+        {
+            if (!hazard.MushroomNear)
+            {
+                _mushroomLatched = false;
+                return;
+            }
+
+            if (_mushroomLatched)
+            {
+                return;
+            }
+
+            _mushroomLatched = true;
+            var speed = SpeedMps;
+            if (speed <= 0f)
+            {
+                return;
+            }
+
+            var bounce = Math.Min(speed * _settings.MushroomBounceSpeedRatio, _settings.MushroomBounceMaxMps);
+            var upRatio = Math.Min(_settings.MushroomMaxUpRatio, bounce / speed);
+            _sliding = false;
+            _doubleJumpUsed = false;
+            SetVelocity(speed, YawRad, (float)Math.Asin(upRatio));
+        }
+
+        /// <summary>
+        /// 登れない障害物に正面から当たったとき、速さが減る。当たっている間は一度だけ。
+        /// </summary>
+        private void TryObstacle(HazardContact hazard)
+        {
+            if (hazard.ObstacleIntoDot < _settings.ObstacleMinIntoDot)
+            {
+                _obstacleLatched = false;
+                return;
+            }
+
+            if (_obstacleLatched)
+            {
+                return;
+            }
+
+            _obstacleLatched = true;
+            var scale = 1f - _settings.ObstacleSlowFactor * hazard.ObstacleIntoDot;
+            SetSpeed(Math.Max(_settings.MinSpeedMps, SpeedMps * scale));
+        }
+
+        /// <summary>
+        /// 天井に当たると、速さが減って下へ落ちる。当たっている間は一度だけ。
+        /// </summary>
+        private void TryCeiling(HazardContact hazard)
+        {
+            if (!hazard.CeilingHit)
+            {
+                _ceilingLatched = false;
+                return;
+            }
+
+            if (_ceilingLatched)
+            {
+                return;
+            }
+
+            _ceilingLatched = true;
+            var speed = Math.Max(_settings.MinSpeedMps, SpeedMps * _settings.CeilingSpeedRatio);
+            SetDirection(_vx * 0.35f, -1f, _vz * 0.35f, speed);
         }
 
         /// <summary>壁のぼり中か（前から壁を登っている）。</summary>
@@ -366,6 +465,11 @@ namespace BlinkExpress.Player.Model
             if (input.Brake)
             {
                 speed = Math.Max(_settings.MinSpeedMps, speed - _settings.BrakeMps2 * dt);
+            }
+            else if (input.Hazard.OnMud)
+            {
+                // 泥の上では、スケートの加速が打ち消されて、毎秒 16 m/s 減る
+                speed = Math.Max(_settings.MinSpeedMps, speed - _settings.MudDecelMps2 * dt);
             }
             else if (!_sliding && speed < _settings.CruiseSpeedMps)
             {

@@ -74,5 +74,29 @@ namespace BlinkExpress.Player.Model
 
         /// <summary>壁ジャンプの、進んでいた向きの割合。</summary>
         public float WallJumpForwardRatio { get; set; } = 0.6f;
+
+        /// <summary>泥（減速床）の上で毎秒減る速さ（m/s²）。スケートの加速は打ち消される。</summary>
+        public float MudDecelMps2 { get; set; } = 16f;
+
+        /// <summary>レールの上で毎秒増える速さ（m/s²）。</summary>
+        public float RailAccelMps2 { get; set; } = 4f;
+
+        /// <summary>キノコで跳ねるときの、上向きの速さの上限（m/s）。</summary>
+        public float MushroomBounceMaxMps { get; set; } = 24f;
+
+        /// <summary>キノコで跳ねるときの、速さに対する上向きの速さの割合。</summary>
+        public float MushroomBounceSpeedRatio { get; set; } = 0.9f;
+
+        /// <summary>キノコで跳ねるときの、上向きの割合の上限。</summary>
+        public float MushroomMaxUpRatio { get; set; } = 0.95f;
+
+        /// <summary>登れない障害物に正面から当たったときの、速さの減り方の係数。</summary>
+        public float ObstacleSlowFactor { get; set; } = 0.45f;
+
+        /// <summary>障害物で速さが減るとみなす、進む向きと面の内積の下限。</summary>
+        public float ObstacleMinIntoDot { get; set; } = 0.35f;
+
+        /// <summary>天井に当たったあとの速さの倍率。</summary>
+        public float CeilingSpeedRatio { get; set; } = 0.55f;
     }
 }
