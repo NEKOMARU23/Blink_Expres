@@ -305,6 +305,86 @@ namespace BlinkExpress.Tests
         }
 
         [Test]
+        public void MudSlowsByAboutSixteenPerSecond()
+        {
+            // 泥の上では毎秒 16 m/s 減る（スケートの加速は打ち消される）。0.5 秒で 20 → 12 m/s
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 20f;
+            var model = new PlayerMovementModel(settings);
+            var mud = new HazardContact(true, false, false, 0f, 0f, 0f, false);
+
+            for (var i = 0; i < 5; i++)
+            {
+                model.Tick(new MovementInput(false, 0f, 0f, hazard: mud), true, 0.1f);
+            }
+
+            Assert.That(model.SpeedMps, Is.EqualTo(12f).Within(0.05f));
+        }
+
+        [Test]
+        public void MushroomBouncesUpAndKeepsSpeed()
+        {
+            // 速さ 30 m/s のキノコは、上向きの速さを min(30 × 0.9, 24) = 24 m/s にする。速さは保つ
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 30f;
+            var model = new PlayerMovementModel(settings);
+            var mushroom = new HazardContact(false, true, false, 0f, 0f, 0f, false);
+
+            model.Tick(new MovementInput(false, 0f, 0f, hazard: mushroom), true, Dt);
+
+            Assert.That(model.VelocityY, Is.EqualTo(24f).Within(0.01f));
+            Assert.That(model.SpeedMps, Is.EqualTo(30f).Within(0.01f));
+        }
+
+        [Test]
+        public void RailAcceleratesAlongRailDirection()
+        {
+            // レールの上では、レールの向き（+Z）へ、毎秒 4 m/s ずつ加速する
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 20f;
+            var model = new PlayerMovementModel(settings);
+            var rail = new HazardContact(false, false, true, 0f, 1f, 0f, false);
+
+            for (var i = 0; i < 10; i++)
+            {
+                model.Tick(new MovementInput(false, 0f, 0f, hazard: rail), true, 0.1f);
+            }
+
+            Assert.That(model.SpeedMps, Is.EqualTo(24f).Within(0.01f));
+            Assert.That(model.VelocityY, Is.EqualTo(0f).Within(0.01f));
+            Assert.That(model.VelocityZ, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void ObstacleSlowsByFormula()
+        {
+            // 登れない障害物に正面から当たると、速さは × (1 − 0.45 × 内積)。内積 1.0 なら × 0.55
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 20f;
+            var model = new PlayerMovementModel(settings);
+            var obstacle = new HazardContact(false, false, false, 0f, 0f, 1f, false);
+
+            model.Tick(new MovementInput(false, 0f, 0f, hazard: obstacle), false, 0.001f);
+
+            Assert.That(model.SpeedMps, Is.EqualTo(11f).Within(0.05f));
+        }
+
+        [Test]
+        public void CeilingHitLowersSpeedAndDropsDown()
+        {
+            // 天井に当たると速さが × 0.55 になり、下へ向きを変える
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 20f;
+            var model = new PlayerMovementModel(settings);
+            var ceiling = new HazardContact(false, false, false, 0f, 0f, 0f, true);
+
+            model.Tick(new MovementInput(false, 0f, 0f, hazard: ceiling), false, 0.001f);
+
+            Assert.That(model.SpeedMps, Is.EqualTo(11f).Within(0.05f));
+            Assert.That(model.VelocityY, Is.LessThan(0f));
+        }
+
+        [Test]
         public void SetDirectionSetsHeadingAndSpeed()
         {
             // ワープの着地で、向きと速さを設定できる（+X 方向、速さ 20 m/s）

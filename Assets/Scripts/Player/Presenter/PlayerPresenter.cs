@@ -43,6 +43,9 @@ namespace BlinkExpress.Player.Presenter
         /// <summary>スライディング中か。</summary>
         public bool IsSliding => _model.IsSliding;
 
+        /// <summary>進む向きの水平角（rad）。0 は +Z 方向。</summary>
+        public float YawRad => _model.YawRad;
+
         /// <summary>壁のぼり中か。</summary>
         public bool IsClimbing => _model.IsClimbing;
 
