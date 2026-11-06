@@ -40,6 +40,9 @@ namespace BlinkExpress.Player.Presenter
         /// <summary>現在の速さ（m/s）。</summary>
         public float SpeedMps => _model.SpeedMps;
 
+        /// <summary>スライディング中か。</summary>
+        public bool IsSliding => _model.IsSliding;
+
         /// <summary>
         /// ワープで着地する。位置を移し、向きと速さを設定する。
         /// </summary>

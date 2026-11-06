@@ -12,10 +12,15 @@ namespace BlinkExpress.Player.Model
         private const float Pi = (float)Math.PI;
         private const float TwoPi = (float)(Math.PI * 2);
 
+        /// <summary>ジャンプの上向きの割合の上限（仕様書「ジャンプ」の節：最大 0.8）。</summary>
+        private const float JumpMaxUpRatio = 0.8f;
+
         private readonly MovementSettings _settings;
         private float _vx;
         private float _vy;
         private float _vz;
+        private bool _doubleJumpUsed;
+        private bool _sliding;
 
         /// <summary>
         /// 開始時の速さと向き（+Z 方向）で作る。
@@ -82,14 +87,67 @@ namespace BlinkExpress.Player.Model
         {
             if (grounded)
             {
+                // 着地したら、二段ジャンプを使えるようにする
+                _doubleJumpUsed = false;
+                UpdateSliding(input);
                 TickGround(input, dt);
             }
             else
             {
+                _sliding = false;
                 TickAir(input, dt);
             }
 
+            if (input.JumpPressed)
+            {
+                _sliding = false;
+                TryJump(grounded);
+            }
+
             ClampSpeed();
+        }
+
+        /// <summary>スライディングの状態を更新する。キーを押している間、または天井の下にいる間は続ける。</summary>
+        private void UpdateSliding(MovementInput input)
+        {
+            var wantSliding = input.SlideHeld || (_sliding && !input.CanStand);
+            _sliding = wantSliding && SpeedMps >= _settings.SlideMinSpeedMps;
+        }
+
+        /// <summary>スライディング中か（体を低くしている状態）。</summary>
+        public bool IsSliding => _sliding;
+
+        /// <summary>
+        /// ジャンプを試す。地上なら通常のジャンプ、空中なら一度だけ二段ジャンプができる（速さが足りるとき）。
+        /// </summary>
+        private void TryJump(bool grounded)
+        {
+            if (grounded)
+            {
+                Jump();
+                return;
+            }
+
+            if (!_doubleJumpUsed && SpeedMps >= _settings.DoubleJumpMinSpeedMps)
+            {
+                _doubleJumpUsed = true;
+                Jump();
+            }
+        }
+
+        /// <summary>
+        /// 速さは変えずに、向きを上へ傾ける。上向きの速さは JumpSpeedMps にする（速さが足りないときは割合の上限まで）。
+        /// </summary>
+        private void Jump()
+        {
+            var speed = SpeedMps;
+            if (speed <= 0f)
+            {
+                return;
+            }
+
+            var upRatio = Math.Min(JumpMaxUpRatio, _settings.JumpSpeedMps / speed);
+            SetVelocity(speed, YawRad, (float)Math.Asin(upRatio));
         }
 
         /// <summary>
@@ -103,12 +161,14 @@ namespace BlinkExpress.Player.Model
             {
                 speed = Math.Max(_settings.MinSpeedMps, speed - _settings.BrakeMps2 * dt);
             }
-            else if (speed < _settings.CruiseSpeedMps)
+            else if (!_sliding && speed < _settings.CruiseSpeedMps)
             {
+                // スライディング中はスケートの加速が止まる（仕様書「スライディング」）
                 speed = Math.Min(_settings.CruiseSpeedMps, speed + _settings.AccelMps2 * dt);
             }
 
-            var yaw = SteerTowards(YawRad, TargetYaw(input), _settings.SteerRadPerSec * dt);
+            var steerRatio = _sliding ? _settings.SlideSteerRatio : 1f;
+            var yaw = SteerTowards(YawRad, TargetYaw(input), _settings.SteerRadPerSec * steerRatio * dt);
             SetVelocity(speed, yaw, 0f);
         }
 
