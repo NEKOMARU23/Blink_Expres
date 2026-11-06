@@ -47,5 +47,32 @@ namespace BlinkExpress.Player.Model
 
         /// <summary>スライディング中の旋回の倍率。地上の何倍で曲がるか。</summary>
         public float SlideSteerRatio { get; set; } = 0.4f;
+
+        /// <summary>前から当たったとみなす、進む向きと壁の法線の内積の下限（約 45° 以内）。</summary>
+        public float FrontDot { get; set; } = 0.7f;
+
+        /// <summary>壁のぼりの上昇速度が毎秒減る量（m/s²）。</summary>
+        public float ClimbDecelMps2 { get; set; } = 20f;
+
+        /// <summary>壁のぼり中にジャンプを押したときの、上昇速度の上乗せ（m/s、1回だけ）。</summary>
+        public float ClimbKickMps { get; set; } = 16f;
+
+        /// <summary>壁走り・壁滑走のときの重力（m/s²）。</summary>
+        public float WallGravityMps2 { get; set; } = 13f;
+
+        /// <summary>壁走りで、まっすぐ走る時間（秒）。</summary>
+        public float WallRunTimeSec { get; set; } = 1.2f;
+
+        /// <summary>横から壁走りを始める最低の高さ（m）。</summary>
+        public float WallRunMinHeightM { get; set; } = 2f;
+
+        /// <summary>壁ジャンプの、壁から離れる向きの割合。</summary>
+        public float WallJumpNormalRatio { get; set; } = 0.75f;
+
+        /// <summary>壁ジャンプの、上向きの割合。</summary>
+        public float WallJumpUpRatio { get; set; } = 0.6f;
+
+        /// <summary>壁ジャンプの、進んでいた向きの割合。</summary>
+        public float WallJumpForwardRatio { get; set; } = 0.6f;
     }
 }

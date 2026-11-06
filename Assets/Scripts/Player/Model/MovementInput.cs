@@ -14,7 +14,8 @@ namespace BlinkExpress.Player.Model
         /// <param name="jumpPressed">このフレームでジャンプ（Space）を押したか。</param>
         /// <param name="slideHeld">スライディングのキー（Shift か C）を押しているか。</param>
         /// <param name="canStand">頭の上に天井が無く、立ち上がれるか。</param>
-        public MovementInput(bool brake, float cameraYawRad, float leanDirection, bool jumpPressed = false, bool slideHeld = false, bool canStand = true)
+        /// <param name="wall">壁に触れている状態。触れていなければ既定値。</param>
+        public MovementInput(bool brake, float cameraYawRad, float leanDirection, bool jumpPressed = false, bool slideHeld = false, bool canStand = true, WallContact wall = default)
         {
             Brake = brake;
             CameraYawRad = cameraYawRad;
@@ -22,7 +23,11 @@ namespace BlinkExpress.Player.Model
             JumpPressed = jumpPressed;
             SlideHeld = slideHeld;
             CanStand = canStand;
+            Wall = wall;
         }
+
+        /// <summary>壁に触れている状態。</summary>
+        public WallContact Wall { get; }
 
         /// <summary>このフレームでジャンプ（Space）を押したか。地上ならジャンプ、空中なら二段ジャンプ。</summary>
         public bool JumpPressed { get; }
