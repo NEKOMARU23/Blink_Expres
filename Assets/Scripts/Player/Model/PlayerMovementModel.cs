@@ -30,6 +30,7 @@ namespace BlinkExpress.Player.Model
         private float _runTimeLeft;
         private bool _slideFromContact;
         private float _contactSlideAgeSec;
+        private float _noContactSec;
         private bool _climbKickUsed;
         private bool _mushroomLatched;
         private bool _obstacleLatched;
@@ -134,7 +135,10 @@ namespace BlinkExpress.Player.Model
                 _contactSlideAgeSec += dt;
             }
 
-            if ((_wallMode == WallMode.Run && (grounded || !input.Wall.Touching))
+            // 壁に沿って進むと接触の判定が途切れることがあるので、途切れても少しの間は壁走りを続ける
+            _noContactSec = input.Wall.Touching ? 0f : _noContactSec + dt;
+
+            if ((_wallMode == WallMode.Run && (grounded || (_runTimeLeft <= 0f && _noContactSec > 0.2f)))
                 || (_wallMode == WallMode.Slide && grounded)
                 || (_wallMode == WallMode.Slide && _slideFromContact && !input.Wall.Touching && _contactSlideAgeSec > 0.15f))
             {
