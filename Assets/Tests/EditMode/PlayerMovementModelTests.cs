@@ -439,6 +439,22 @@ namespace BlinkExpress.Tests
         }
 
         [Test]
+        public void AirSteerTurnsTowardLean()
+        {
+            // 空中でも、寄せ（A）の向きへ曲がる（地上の 0.35 倍の速さで）。1 秒で横の速さが生まれる
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 25f;
+            var model = new PlayerMovementModel(settings);
+
+            for (var i = 0; i < 100; i++)
+            {
+                model.Tick(new MovementInput(false, 0f, 1f), false, 0.01f);
+            }
+
+            Assert.That(model.VelocityX, Is.GreaterThan(1f));
+        }
+
+        [Test]
         public void SetDirectionSetsHeadingAndSpeed()
         {
             // ワープの着地で、向きと速さを設定できる（+X 方向、速さ 20 m/s）
