@@ -42,5 +42,10 @@ namespace BlinkExpress.Player.Model
         /// <summary>二段ジャンプができる最低の速さ（m/s）。</summary>
         public float DoubleJumpMinSpeedMps { get; set; } = 40f;
 
+        /// <summary>スライディングができる最低の速さ（m/s）。</summary>
+        public float SlideMinSpeedMps { get; set; } = 12f;
+
+        /// <summary>スライディング中の旋回の倍率。地上の何倍で曲がるか。</summary>
+        public float SlideSteerRatio { get; set; } = 0.4f;
     }
 }

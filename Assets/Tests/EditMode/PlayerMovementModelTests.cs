@@ -165,6 +165,48 @@ namespace BlinkExpress.Tests
         }
 
         [Test]
+        public void SlidingStopsSkateAcceleration()
+        {
+            // スライディング中は、スケートの加速が止まる（速さは 14 m/s のまま）
+            var model = new PlayerMovementModel(CreateSettings());
+
+            for (var i = 0; i < 20; i++)
+            {
+                model.Tick(new MovementInput(false, 0f, 0f, slideHeld: true), true, Dt);
+            }
+
+            Assert.That(model.IsSliding, Is.True);
+            Assert.That(model.SpeedMps, Is.EqualTo(14f).Within(0.01f));
+        }
+
+        [Test]
+        public void SlidingNeedsMinimumSpeed()
+        {
+            // 12 m/s より遅いとスライディングにならない
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 10f;
+            var model = new PlayerMovementModel(settings);
+
+            model.Tick(new MovementInput(false, 0f, 0f, slideHeld: true), true, Dt);
+
+            Assert.That(model.IsSliding, Is.False);
+        }
+
+        [Test]
+        public void SlidingContinuesUnderCeilingAfterReleasingKey()
+        {
+            // キーを離しても、頭の上に天井があれば立ち上がれず、スライディングを続ける
+            var model = new PlayerMovementModel(CreateSettings());
+            model.Tick(new MovementInput(false, 0f, 0f, slideHeld: true), true, Dt);
+
+            model.Tick(new MovementInput(false, 0f, 0f, slideHeld: false, canStand: false), true, Dt);
+            Assert.That(model.IsSliding, Is.True);
+
+            model.Tick(new MovementInput(false, 0f, 0f, slideHeld: false, canStand: true), true, Dt);
+            Assert.That(model.IsSliding, Is.False);
+        }
+
+        [Test]
         public void SetDirectionSetsHeadingAndSpeed()
         {
             // ワープの着地で、向きと速さを設定できる（+X 方向、速さ 20 m/s）

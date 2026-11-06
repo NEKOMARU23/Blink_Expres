@@ -18,6 +18,12 @@ namespace BlinkExpress.Player.View
         /// <summary>天井にワープしたとき、体を天井からどれだけ下げて置くか（m）。</summary>
         private const float CeilingDropM = 2.1f;
 
+        /// <summary>立っているときの体の高さ（m）。</summary>
+        private const float StandHeightM = 2f;
+
+        /// <summary>スライディング中の体の高さ（m）。仕様書「スライディング」：1.8 m → 0.9 m。</summary>
+        private const float SlideHeightM = 0.9f;
+
         [SerializeField] private PlayerTuning _tuning;
         [SerializeField] private ChaseCameraView _chaseCamera;
         [SerializeField] private BeaconView _beacon;
@@ -58,15 +64,49 @@ namespace BlinkExpress.Player.View
             }
 
             var lean = (keyboard.aKey.isPressed ? 1f : 0f) - (keyboard.dKey.isPressed ? 1f : 0f);
+            var slideHeld = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed || keyboard.cKey.isPressed;
             var input = new MovementInput(
                 keyboard.sKey.isPressed,
                 _chaseCamera.YawRad,
                 lean,
-                keyboard.spaceKey.wasPressedThisFrame);
+                keyboard.spaceKey.wasPressedThisFrame,
+                slideHeld,
+                HeadClear());
 
             // 照準中はゲーム内時間が遅くなるので、プレイヤーの移動もそれに合わせる
             var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f);
             _presenter.Tick(input, worldDt);
+
+            ApplyBodyHeight();
+        }
+
+        /// <summary>
+        /// スライディング中は体を低くする。立っているときは元の高さに戻す。
+        /// </summary>
+        private void ApplyBodyHeight()
+        {
+            var height = _presenter.IsSliding ? SlideHeightM : StandHeightM;
+            _controller.height = height;
+            _controller.center = new Vector3(0f, height / 2f, 0f);
+        }
+
+        /// <summary>
+        /// 頭の上に天井が無く、立ち上がれるかを調べる。自分自身は無視する。
+        /// </summary>
+        private bool HeadClear()
+        {
+            var origin = transform.position + Vector3.up * SlideHeightM;
+            var length = StandHeightM - SlideHeightM;
+            var hits = Physics.RaycastAll(origin, Vector3.up, length, ~0, QueryTriggerInteraction.Ignore);
+            foreach (var hit in hits)
+            {
+                if (!hit.collider.transform.IsChildOf(transform))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

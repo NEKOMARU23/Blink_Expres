@@ -20,6 +20,7 @@ namespace BlinkExpress.Player.Model
         private float _vy;
         private float _vz;
         private bool _doubleJumpUsed;
+        private bool _sliding;
 
         /// <summary>
         /// 開始時の速さと向き（+Z 方向）で作る。
@@ -88,20 +89,33 @@ namespace BlinkExpress.Player.Model
             {
                 // 着地したら、二段ジャンプを使えるようにする
                 _doubleJumpUsed = false;
+                UpdateSliding(input);
                 TickGround(input, dt);
             }
             else
             {
+                _sliding = false;
                 TickAir(input, dt);
             }
 
             if (input.JumpPressed)
             {
+                _sliding = false;
                 TryJump(grounded);
             }
 
             ClampSpeed();
         }
+
+        /// <summary>スライディングの状態を更新する。キーを押している間、または天井の下にいる間は続ける。</summary>
+        private void UpdateSliding(MovementInput input)
+        {
+            var wantSliding = input.SlideHeld || (_sliding && !input.CanStand);
+            _sliding = wantSliding && SpeedMps >= _settings.SlideMinSpeedMps;
+        }
+
+        /// <summary>スライディング中か（体を低くしている状態）。</summary>
+        public bool IsSliding => _sliding;
 
         /// <summary>
         /// ジャンプを試す。地上なら通常のジャンプ、空中なら一度だけ二段ジャンプができる（速さが足りるとき）。
@@ -147,12 +161,14 @@ namespace BlinkExpress.Player.Model
             {
                 speed = Math.Max(_settings.MinSpeedMps, speed - _settings.BrakeMps2 * dt);
             }
-            else if (speed < _settings.CruiseSpeedMps)
+            else if (!_sliding && speed < _settings.CruiseSpeedMps)
             {
+                // スライディング中はスケートの加速が止まる（仕様書「スライディング」）
                 speed = Math.Min(_settings.CruiseSpeedMps, speed + _settings.AccelMps2 * dt);
             }
 
-            var yaw = SteerTowards(YawRad, TargetYaw(input), _settings.SteerRadPerSec * dt);
+            var steerRatio = _sliding ? _settings.SlideSteerRatio : 1f;
+            var yaw = SteerTowards(YawRad, TargetYaw(input), _settings.SteerRadPerSec * steerRatio * dt);
             SetVelocity(speed, yaw, 0f);
         }
 
