@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace BlinkExpress.Player.Presenter
 {
     /// <summary>
@@ -8,6 +10,12 @@ namespace BlinkExpress.Player.Presenter
     {
         /// <summary>地面に立っているか。</summary>
         bool IsGrounded { get; }
+
+        /// <summary>
+        /// 位置を変える（ワープの着地など）。移動量を積まずに、その位置へ置く。
+        /// </summary>
+        /// <param name="position">移動先の位置（m）。</param>
+        void Teleport(Vector3 position);
 
         /// <summary>
         /// このフレームの移動量（m）を渡して、体を動かす。

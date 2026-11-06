@@ -26,6 +26,10 @@ namespace BlinkExpress.Tuning
         [SerializeField] private float _gravityMps2 = 26f;
         [SerializeField] private float _airSteerRatio = 0.35f;
 
+        [Header("ジャンプ")]
+        [SerializeField] private float _jumpSpeedMps = 12.5f;
+        [SerializeField] private float _doubleJumpMinSpeedMps = 40f;
+
         /// <summary>速さの上限（m/s）。カメラの引きを求めるときの基準に使う。</summary>
         public float MaxSpeedMps => _maxSpeedMps;
 
@@ -47,6 +51,8 @@ namespace BlinkExpress.Tuning
                 LeanRad = _leanRad,
                 GravityMps2 = _gravityMps2,
                 AirSteerRatio = _airSteerRatio,
+                JumpSpeedMps = _jumpSpeedMps,
+                DoubleJumpMinSpeedMps = _doubleJumpMinSpeedMps,
             };
         }
     }
