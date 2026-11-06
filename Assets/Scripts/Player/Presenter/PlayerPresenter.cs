@@ -43,6 +43,12 @@ namespace BlinkExpress.Player.Presenter
         /// <summary>スライディング中か。</summary>
         public bool IsSliding => _model.IsSliding;
 
+        /// <summary>壁のぼり中か。</summary>
+        public bool IsClimbing => _model.IsClimbing;
+
+        /// <summary>壁走り中か。</summary>
+        public bool IsRunning => _model.IsRunning;
+
         /// <summary>
         /// ワープで着地する。位置を移し、向きと速さを設定する。
         /// </summary>

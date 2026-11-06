@@ -21,6 +21,19 @@ namespace BlinkExpress.Player.Model
         private float _vz;
         private bool _doubleJumpUsed;
         private bool _sliding;
+        private WallMode _wallMode;
+        private float _wallNormalX;
+        private float _wallNormalZ;
+        private float _runTimeLeft;
+        private bool _climbKickUsed;
+
+        /// <summary>壁の上での状態。</summary>
+        private enum WallMode
+        {
+            None,
+            Climb,
+            Run,
+        }
 
         /// <summary>
         /// 開始時の速さと向き（+Z 方向）で作る。
@@ -85,6 +98,19 @@ namespace BlinkExpress.Player.Model
         /// <param name="dt">経過時間（秒）。</param>
         public void Tick(MovementInput input, bool grounded, float dt)
         {
+            // 横の壁から離れたら、壁走りを終える
+            if (_wallMode == WallMode.Run && (grounded || !input.Wall.Touching))
+            {
+                _wallMode = WallMode.None;
+            }
+
+            if (_wallMode != WallMode.None)
+            {
+                TickOnWall(input, dt);
+                ClampSpeed();
+                return;
+            }
+
             if (grounded)
             {
                 // 着地したら、二段ジャンプを使えるようにする
@@ -104,7 +130,187 @@ namespace BlinkExpress.Player.Model
                 TryJump(grounded);
             }
 
+            TryStartWall(input, grounded);
             ClampSpeed();
+        }
+
+        /// <summary>壁のぼり中か（前から壁を登っている）。</summary>
+        public bool IsClimbing => _wallMode == WallMode.Climb;
+
+        /// <summary>壁走り中か（横から壁に沿って走っている）。</summary>
+        public bool IsRunning => _wallMode == WallMode.Run;
+
+        /// <summary>
+        /// 壁に触れていれば、前からなら壁のぼり、横からで空中なら壁走りを始める。
+        /// </summary>
+        private void TryStartWall(MovementInput input, bool grounded)
+        {
+            if (!input.Wall.Touching)
+            {
+                return;
+            }
+
+            var horizontal = (float)Math.Sqrt(_vx * _vx + _vz * _vz);
+            var facing = horizontal > 0f ? (-(_vx * input.Wall.NormalX + _vz * input.Wall.NormalZ) / horizontal) : 0f;
+            if (facing > _settings.FrontDot)
+            {
+                StartClimb();
+                return;
+            }
+
+            if (!grounded && input.Wall.HeightAboveGroundM >= _settings.WallRunMinHeightM)
+            {
+                StartRun(input.Wall);
+            }
+        }
+
+        /// <summary>壁のぼりを始める。上昇速度は今の速さから始まる（仕様書「壁」の節）。</summary>
+        private void StartClimb()
+        {
+            // 水平の成分を消す前に、今の速さを取っておく
+            var speed = SpeedMps;
+            _wallMode = WallMode.Climb;
+            _climbKickUsed = false;
+            _doubleJumpUsed = false;
+            _sliding = false;
+            _vx = 0f;
+            _vz = 0f;
+            _vy = speed;
+        }
+
+        /// <summary>壁走りを始める。速さは保ったまま、壁に沿った向きにする。</summary>
+        private void StartRun(WallContact wall)
+        {
+            _wallMode = WallMode.Run;
+            _wallNormalX = wall.NormalX;
+            _wallNormalZ = wall.NormalZ;
+            _runTimeLeft = _settings.WallRunTimeSec;
+            _doubleJumpUsed = false;
+            _sliding = false;
+            AlongWall(SpeedMps);
+        }
+
+        /// <summary>
+        /// 壁の法線に沿った成分を消し、向きだけを壁に沿わせる。速さは指定の値にする。
+        /// </summary>
+        /// <param name="targetSpeedMps">保つ速さ（m/s）。</param>
+        private void AlongWall(float targetSpeedMps)
+        {
+            var along = _vx * _wallNormalX + _vz * _wallNormalZ;
+            _vx -= along * _wallNormalX;
+            _vz -= along * _wallNormalZ;
+
+            var projected = SpeedMps;
+            if (projected > 0f)
+            {
+                var scale = targetSpeedMps / projected;
+                _vx *= scale;
+                _vy *= scale;
+                _vz *= scale;
+            }
+        }
+
+        /// <summary>
+        /// 壁の上での移動。ジャンプは壁ジャンプになる。
+        /// </summary>
+        private void TickOnWall(MovementInput input, float dt)
+        {
+            if (input.JumpPressed)
+            {
+                WallJump(input);
+                return;
+            }
+
+            if (_wallMode == WallMode.Climb)
+            {
+                TickClimb(input, dt);
+                return;
+            }
+
+            TickRun(dt);
+        }
+
+        /// <summary>
+        /// 壁のぼり。真上へ上がり、上昇速度が 0 になると下りる。上端に着いたら乗り越える。
+        /// </summary>
+        private void TickClimb(MovementInput input, float dt)
+        {
+            _vy -= _settings.ClimbDecelMps2 * dt;
+            _vx = 0f;
+            _vz = 0f;
+
+            if (input.Wall.TopReached)
+            {
+                LeaveWall(0.2f, Math.Max(SpeedMps, _settings.MinSpeedMps), input);
+                return;
+            }
+
+            if (_vy <= 0f)
+            {
+                LeaveWall(-0.3f, _settings.MinSpeedMps, input);
+            }
+        }
+
+        /// <summary>
+        /// 壁走り。まっすぐ走る時間は重力がなく、その後は重力で下へ曲がる。速さは保つ。
+        /// </summary>
+        private void TickRun(float dt)
+        {
+            var speed = SpeedMps;
+            if (_runTimeLeft > 0f)
+            {
+                _runTimeLeft -= dt;
+            }
+            else
+            {
+                _vy -= _settings.WallGravityMps2 * dt;
+            }
+
+            AlongWall(speed);
+        }
+
+        /// <summary>
+        /// 壁から離れる。カメラの向きへ、指定の上下の傾きで進む。
+        /// </summary>
+        /// <param name="pitchRatio">上下の割合（プラスで上、マイナスで下）。</param>
+        /// <param name="speedMps">離れた後の速さ（m/s）。</param>
+        /// <param name="input">このフレームの入力（カメラの向きを使う）。</param>
+        private void LeaveWall(float pitchRatio, float speedMps, MovementInput input)
+        {
+            _wallMode = WallMode.None;
+            _sliding = false;
+            SetDirection((float)Math.Sin(input.CameraYawRad), pitchRatio, (float)Math.Cos(input.CameraYawRad), speedMps);
+        }
+
+        /// <summary>
+        /// 壁ジャンプ。壁のぼり中は上昇速度が一度だけ上がり、壁走り中は壁から離れる向きへ跳ぶ。
+        /// 離れたあとは二段ジャンプが使える。
+        /// </summary>
+        private void WallJump(MovementInput input)
+        {
+            if (_wallMode == WallMode.Climb)
+            {
+                if (!_climbKickUsed)
+                {
+                    _climbKickUsed = true;
+                    _vy += _settings.ClimbKickMps;
+                }
+
+                return;
+            }
+
+            var speed = SpeedMps;
+            var horizontal = (float)Math.Sqrt(_vx * _vx + _vz * _vz);
+            var forwardX = horizontal > 0f ? _vx / horizontal : 0f;
+            var forwardZ = horizontal > 0f ? _vz / horizontal : 0f;
+
+            var x = _wallNormalX * _settings.WallJumpNormalRatio + forwardX * _settings.WallJumpForwardRatio;
+            var y = _settings.WallJumpUpRatio;
+            var z = _wallNormalZ * _settings.WallJumpNormalRatio + forwardZ * _settings.WallJumpForwardRatio;
+
+            _wallMode = WallMode.None;
+            _doubleJumpUsed = false;
+            SetDirection(x, y, z, speed);
         }
 
         /// <summary>スライディングの状態を更新する。キーを押している間、または天井の下にいる間は続ける。</summary>
