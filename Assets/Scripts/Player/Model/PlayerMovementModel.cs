@@ -43,6 +43,36 @@ namespace BlinkExpress.Player.Model
         public float VelocityZ => _vz;
 
         /// <summary>
+        /// 向きと速さを外から設定する（ワープの着地など）。向きは正規化して使う。
+        /// </summary>
+        /// <param name="x">向きの X 成分。</param>
+        /// <param name="y">向きの Y 成分。</param>
+        /// <param name="z">向きの Z 成分。</param>
+        /// <param name="speedMps">設定する速さ（m/s）。</param>
+        public void SetDirection(float x, float y, float z, float speedMps)
+        {
+            var horizontal = (float)Math.Sqrt(x * x + z * z);
+            if (horizontal <= 0f && y == 0f)
+            {
+                SetVelocity(speedMps, 0f, 0f);
+                return;
+            }
+
+            var yaw = (float)Math.Atan2(x, z);
+            var pitch = (float)Math.Atan2(y, horizontal);
+            SetVelocity(speedMps, yaw, pitch);
+        }
+
+        /// <summary>
+        /// 向きはそのままで、速さだけを設定する。
+        /// </summary>
+        /// <param name="speedMps">設定する速さ（m/s）。</param>
+        public void SetSpeed(float speedMps)
+        {
+            SetDirection(_vx, _vy, _vz, speedMps);
+        }
+
+        /// <summary>
         /// 1フレーム分の移動を計算して、速度を更新する。
         /// </summary>
         /// <param name="input">このフレームの入力。</param>
