@@ -40,5 +40,13 @@ namespace BlinkExpress.Stage.View
         {
             _coinsCollected += count;
         }
+
+        /// <summary>
+        /// リスタートのとき、取ったコインの数を 0 に戻す。
+        /// </summary>
+        public void ResetCoins()
+        {
+            _coinsCollected = 0;
+        }
     }
 }
