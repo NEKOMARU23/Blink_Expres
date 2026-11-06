@@ -58,7 +58,11 @@ namespace BlinkExpress.Player.View
             }
 
             var lean = (keyboard.aKey.isPressed ? 1f : 0f) - (keyboard.dKey.isPressed ? 1f : 0f);
-            var input = new MovementInput(keyboard.sKey.isPressed, _chaseCamera.YawRad, lean);
+            var input = new MovementInput(
+                keyboard.sKey.isPressed,
+                _chaseCamera.YawRad,
+                lean,
+                keyboard.spaceKey.wasPressedThisFrame);
 
             // 照準中はゲーム内時間が遅くなるので、プレイヤーの移動もそれに合わせる
             var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f);

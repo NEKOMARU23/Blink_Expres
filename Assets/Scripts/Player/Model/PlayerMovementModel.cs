@@ -12,10 +12,14 @@ namespace BlinkExpress.Player.Model
         private const float Pi = (float)Math.PI;
         private const float TwoPi = (float)(Math.PI * 2);
 
+        /// <summary>ジャンプの上向きの割合の上限（仕様書「ジャンプ」の節：最大 0.8）。</summary>
+        private const float JumpMaxUpRatio = 0.8f;
+
         private readonly MovementSettings _settings;
         private float _vx;
         private float _vy;
         private float _vz;
+        private bool _doubleJumpUsed;
 
         /// <summary>
         /// 開始時の速さと向き（+Z 方向）で作る。
@@ -82,6 +86,8 @@ namespace BlinkExpress.Player.Model
         {
             if (grounded)
             {
+                // 着地したら、二段ジャンプを使えるようにする
+                _doubleJumpUsed = false;
                 TickGround(input, dt);
             }
             else
@@ -89,7 +95,45 @@ namespace BlinkExpress.Player.Model
                 TickAir(input, dt);
             }
 
+            if (input.JumpPressed)
+            {
+                TryJump(grounded);
+            }
+
             ClampSpeed();
+        }
+
+        /// <summary>
+        /// ジャンプを試す。地上なら通常のジャンプ、空中なら一度だけ二段ジャンプができる（速さが足りるとき）。
+        /// </summary>
+        private void TryJump(bool grounded)
+        {
+            if (grounded)
+            {
+                Jump();
+                return;
+            }
+
+            if (!_doubleJumpUsed && SpeedMps >= _settings.DoubleJumpMinSpeedMps)
+            {
+                _doubleJumpUsed = true;
+                Jump();
+            }
+        }
+
+        /// <summary>
+        /// 速さは変えずに、向きを上へ傾ける。上向きの速さは JumpSpeedMps にする（速さが足りないときは割合の上限まで）。
+        /// </summary>
+        private void Jump()
+        {
+            var speed = SpeedMps;
+            if (speed <= 0f)
+            {
+                return;
+            }
+
+            var upRatio = Math.Min(JumpMaxUpRatio, _settings.JumpSpeedMps / speed);
+            SetVelocity(speed, YawRad, (float)Math.Asin(upRatio));
         }
 
         /// <summary>
