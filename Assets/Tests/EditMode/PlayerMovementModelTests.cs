@@ -206,6 +206,104 @@ namespace BlinkExpress.Tests
             Assert.That(model.IsSliding, Is.False);
         }
 
+        /// <summary>
+        /// 正面の壁（+Z 方向に向かって、壁の法線は -Z）に触れている状態を作る。
+        /// </summary>
+        private static WallContact FrontWall(bool touching, bool topReached = false)
+        {
+            return new WallContact(touching, 0f, -1f, topReached, 0f);
+        }
+
+        [Test]
+        public void ClimbRisesAboutSpeedSquaredOver40()
+        {
+            // 速さ 30 m/s で前から壁に当たると、約 30² ÷ 40 = 22.5 m 登る（仕様書「壁」の節）
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 30f;
+            var model = new PlayerMovementModel(settings);
+
+            model.Tick(new MovementInput(false, 0f, 0f, wall: FrontWall(true)), false, 0.001f);
+            var height = 0f;
+            for (var i = 0; i < 5000 && model.IsClimbing; i++)
+            {
+                // 壁に触れている間だけ、壁のぼりを続ける
+                model.Tick(new MovementInput(false, 0f, 0f, wall: FrontWall(model.IsClimbing)), false, 0.001f);
+                height += model.VelocityY * 0.001f;
+            }
+
+            Assert.That(height, Is.EqualTo(22.5f).Within(0.5f));
+        }
+
+        [Test]
+        public void ClimbKickAddsSixteenOnlyOnce()
+        {
+            // 壁のぼり中のジャンプは、上昇速度に +16 m/s を一度だけ足す
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 30f;
+            var model = new PlayerMovementModel(settings);
+            model.Tick(new MovementInput(false, 0f, 0f, wall: FrontWall(true)), false, 0.1f);
+            var before = model.VelocityY;
+
+            model.Tick(new MovementInput(false, 0f, 0f, jumpPressed: true, wall: FrontWall(true)), false, 0.1f);
+            Assert.That(model.VelocityY, Is.EqualTo(before + 16f).Within(0.01f));
+
+            model.Tick(new MovementInput(false, 0f, 0f, jumpPressed: true, wall: FrontWall(true)), false, 0.1f);
+            Assert.That(model.VelocityY, Is.EqualTo(before + 16f).Within(0.01f));
+        }
+
+        [Test]
+        public void WallRunKeepsHeightWhileRunTimeLasts()
+        {
+            // 横から空中で壁に当たると壁走り。最初の 1.2 秒は重力がかからない
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 20f;
+            var model = new PlayerMovementModel(settings);
+            var sideWall = new WallContact(true, 1f, 0f, false, 3f);
+
+            model.Tick(new MovementInput(false, 0f, 0f, wall: sideWall), false, 0.1f);
+            Assert.That(model.IsRunning, Is.True);
+            var yAtStart = model.VelocityY;
+
+            for (var i = 0; i < 10; i++)
+            {
+                model.Tick(new MovementInput(false, 0f, 0f, wall: sideWall), false, 0.1f);
+            }
+
+            Assert.That(model.VelocityY, Is.EqualTo(yAtStart).Within(0.01f));
+            Assert.That(model.SpeedMps, Is.EqualTo(20f).Within(0.01f));
+        }
+
+        [Test]
+        public void WallRunJumpLeavesWallAndRestoresDoubleJump()
+        {
+            // 壁走りのジャンプで壁から離れ、二段ジャンプが戻る
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 45f;
+            var model = new PlayerMovementModel(settings);
+            var sideWall = new WallContact(true, 1f, 0f, false, 3f);
+
+            model.Tick(new MovementInput(false, 0f, 0f, wall: sideWall), false, 0.1f);
+            model.Tick(new MovementInput(false, 0f, 0f, jumpPressed: true, wall: sideWall), false, 0.1f);
+
+            Assert.That(model.IsRunning, Is.False);
+            Assert.That(model.VelocityX, Is.GreaterThan(0f));
+            Assert.That(model.VelocityY, Is.GreaterThan(0f));
+
+            model.Tick(new MovementInput(false, 0f, 0f, jumpPressed: true), false, 0.1f);
+            Assert.That(model.VelocityY, Is.EqualTo(12.5f).Within(0.01f));
+        }
+
+        [Test]
+        public void SideWallOnGroundDoesNotStartRun()
+        {
+            // 地面にいるときは、横の壁では壁走りにならない
+            var model = new PlayerMovementModel(CreateSettings());
+
+            model.Tick(new MovementInput(false, 0f, 0f, wall: new WallContact(true, 1f, 0f, false, 3f)), true, Dt);
+
+            Assert.That(model.IsRunning, Is.False);
+        }
+
         [Test]
         public void SetDirectionSetsHeadingAndSpeed()
         {
