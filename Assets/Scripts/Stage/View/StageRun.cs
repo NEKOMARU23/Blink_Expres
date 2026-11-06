@@ -1,3 +1,4 @@
+using BlinkExpress.Enemy.View;
 using BlinkExpress.Ghost.Model;
 using BlinkExpress.Ghost.Store;
 using BlinkExpress.Ghost.View;
