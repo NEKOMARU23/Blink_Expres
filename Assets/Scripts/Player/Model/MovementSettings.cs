@@ -35,5 +35,17 @@ namespace BlinkExpress.Player.Model
 
         /// <summary>空中での旋回の倍率。地上の何倍の速さで曲がるか。</summary>
         public float AirSteerRatio { get; set; }
+
+        /// <summary>ジャンプの上向きの速さ（m/s）。速さが足りないときは、上向きの割合の上限で決まる。</summary>
+        public float JumpSpeedMps { get; set; } = 12.5f;
+
+        /// <summary>二段ジャンプができる最低の速さ（m/s）。</summary>
+        public float DoubleJumpMinSpeedMps { get; set; } = 40f;
+
+        /// <summary>スライディングができる最低の速さ（m/s）。</summary>
+        public float SlideMinSpeedMps { get; set; } = 12f;
+
+        /// <summary>スライディング中の旋回の倍率。地上の何倍で曲がるか。</summary>
+        public float SlideSteerRatio { get; set; } = 0.4f;
     }
 }
