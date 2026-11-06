@@ -46,6 +46,25 @@ namespace BlinkExpress.Player.Presenter
         /// <summary>進む向きの水平角（rad）。0 は +Z 方向。</summary>
         public float YawRad => _model.YawRad;
 
+        /// <summary>
+        /// 速さを増やす（コインや粉砕など）。
+        /// </summary>
+        /// <param name="deltaMps">増える速さ（m/s）。</param>
+        public void AddSpeed(float deltaMps)
+        {
+            _model.AddSpeed(deltaMps);
+        }
+
+        /// <summary>
+        /// 敵に弾かれる。速さは半分になり、指定の向きへ逸れる。
+        /// </summary>
+        /// <param name="awayX">弾かれる向きの X 成分（水平）。</param>
+        /// <param name="awayZ">弾かれる向きの Z 成分（水平）。</param>
+        public void Bounce(float awayX, float awayZ)
+        {
+            _model.Bounce(awayX, awayZ);
+        }
+
         /// <summary>壁のぼり中か。</summary>
         public bool IsClimbing => _model.IsClimbing;
 

@@ -94,6 +94,26 @@ namespace BlinkExpress.Player.Model
         }
 
         /// <summary>
+        /// 速さを増やす（コインや粉砕など）。上限を超えない。
+        /// </summary>
+        /// <param name="deltaMps">増える速さ（m/s）。</param>
+        public void AddSpeed(float deltaMps)
+        {
+            SetSpeed(Math.Min(_settings.MaxSpeedMps, SpeedMps + deltaMps));
+        }
+
+        /// <summary>
+        /// 敵に弾かれる。速さは半分になり、指定の向き（水平）へ逸れる。
+        /// </summary>
+        /// <param name="awayX">弾かれる向きの X 成分（水平）。</param>
+        /// <param name="awayZ">弾かれる向きの Z 成分（水平）。</param>
+        public void Bounce(float awayX, float awayZ)
+        {
+            var speed = SpeedMps * 0.5f;
+            SetDirection(awayX, 0f, awayZ, speed);
+        }
+
+        /// <summary>
         /// 1フレーム分の移動を計算して、速度を更新する。
         /// </summary>
         /// <param name="input">このフレームの入力。</param>

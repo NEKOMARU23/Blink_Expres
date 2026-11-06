@@ -1,5 +1,7 @@
 using BlinkExpress.Beacon.Model;
 using BlinkExpress.Beacon.View;
+using BlinkExpress.Enemy.Model;
+using BlinkExpress.Enemy.View;
 using BlinkExpress.Player.Model;
 using BlinkExpress.Player.Presenter;
 using BlinkExpress.Stage.View;
@@ -58,6 +60,12 @@ namespace BlinkExpress.Player.View
 
         /// <summary>レールから降りたあと、同じレールに乗り直さない時間（秒）。</summary>
         private const float RailRelockSec = 0.4f;
+
+        /// <summary>敵を探す範囲（m）。最も大きい敵の半径と、接触の余裕を足した値より大きくする。</summary>
+        private const float MaxEnemyReachM = 6f;
+
+        // 敵に当たった直後は、少しの間は当たらない
+        private float _invincibleUntilSec;
 
         /// <summary>地面に立っているか（CharacterController の判定）。</summary>
         public bool IsGrounded => _controller.isGrounded;
@@ -125,6 +133,84 @@ namespace BlinkExpress.Player.View
 
             ApplyBodyHeight();
             UpdateNoStick();
+            ApplyCoinsAndEnemies();
+        }
+
+        /// <summary>
+        /// 体の中心に近いコインを取り、敵に当たったら粉砕するか弾かれる。
+        /// </summary>
+        private void ApplyCoinsAndEnemies()
+        {
+            var body = transform.position + Vector3.up * (_presenter.IsSliding ? 0.5f : 1f);
+
+            var coins = Physics.OverlapSphere(body, CoinRules.PickupRangeM, ~0, QueryTriggerInteraction.Collide);
+            foreach (var collider in coins)
+            {
+                if (collider.TryGetComponent(out CoinView coin) && coin.TryCollect())
+                {
+                    _presenter.AddSpeed(CoinRules.SpeedGainMps);
+                    if (_beacon != null)
+                    {
+                        _beacon.RefillGauge(CoinRules.GaugeGain);
+                    }
+                }
+            }
+
+            if (Time.time < _invincibleUntilSec)
+            {
+                return;
+            }
+
+            var enemies = Physics.OverlapSphere(body, MaxEnemyReachM, ~0, QueryTriggerInteraction.Collide);
+            foreach (var collider in enemies)
+            {
+                if (!collider.TryGetComponent(out EnemyView enemy) || !enemy.IsAlive)
+                {
+                    continue;
+                }
+
+                var center = enemy.Center;
+                if (Vector3.Distance(body, center) >= enemy.RadiusM + EnemyRules.ContactMarginM)
+                {
+                    continue;
+                }
+
+                _invincibleUntilSec = Time.time + EnemyRules.InvincibleSec;
+                ApplyEnemyContact(enemy, body, center);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// 敵に触れたときの結果。速さが足りれば粉砕して加速し、足りなければ弾かれる。
+        /// </summary>
+        private void ApplyEnemyContact(EnemyView enemy, Vector3 body, Vector3 center)
+        {
+            if (EnemyRules.CanSmash(SpeedMps, enemy.Tier))
+            {
+                enemy.Smash();
+                _presenter.AddSpeed(EnemyRules.SpeedGainMps(enemy.Tier));
+                if (_beacon != null)
+                {
+                    _beacon.RefillGauge(EnemyRules.GaugeGain(enemy.Tier));
+                }
+
+                if (StageProgress.Instance != null)
+                {
+                    StageProgress.Instance.AddCoins(EnemyRules.CoinCount(enemy.Tier));
+                }
+
+                return;
+            }
+
+            var away = new Vector3(body.x - center.x, 0f, body.z - center.z);
+            if (away.sqrMagnitude < 1e-4f)
+            {
+                away = Vector3.back;
+            }
+
+            away.Normalize();
+            _presenter.Bounce(away.x, away.z);
         }
 
         /// <summary>

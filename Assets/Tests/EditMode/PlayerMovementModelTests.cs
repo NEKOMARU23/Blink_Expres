@@ -385,6 +385,33 @@ namespace BlinkExpress.Tests
         }
 
         [Test]
+        public void AddSpeedNeverExceedsMaximum()
+        {
+            // コインや粉砕で速さを足しても、上限（60 m/s）を超えない
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 58f;
+            var model = new PlayerMovementModel(settings);
+
+            model.AddSpeed(6f);
+
+            Assert.That(model.SpeedMps, Is.EqualTo(60f).Within(0.01f));
+        }
+
+        [Test]
+        public void BounceHalvesSpeedAndTurnsAway()
+        {
+            // 弾かれると、速さが半分になり、指定の向き（+X）へ逸れる
+            var settings = CreateSettings();
+            settings.StartSpeedMps = 30f;
+            var model = new PlayerMovementModel(settings);
+
+            model.Bounce(1f, 0f);
+
+            Assert.That(model.SpeedMps, Is.EqualTo(15f).Within(0.01f));
+            Assert.That(model.VelocityX, Is.GreaterThan(0f));
+        }
+
+        [Test]
         public void SetDirectionSetsHeadingAndSpeed()
         {
             // ワープの着地で、向きと速さを設定できる（+X 方向、速さ 20 m/s）
