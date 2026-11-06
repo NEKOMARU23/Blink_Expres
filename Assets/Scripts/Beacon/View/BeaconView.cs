@@ -28,6 +28,18 @@ namespace BlinkExpress.Beacon.View
         /// <summary>ゲーム内時間の速さ（0〜1）。照準中は遅くなり、プレイヤーの移動もこれに合わせる。</summary>
         public float WorldTimeScale => _presenter != null ? _presenter.WorldTimeScale : 1f;
 
+        /// <summary>
+        /// ゲージを回復する（コイン、粉砕など）。
+        /// </summary>
+        /// <param name="amount">回復する量（0〜1）。</param>
+        public void RefillGauge(float amount)
+        {
+            if (_presenter != null)
+            {
+                _presenter.RefillGauge(amount);
+            }
+        }
+
         private void Awake()
         {
             // 無いとビーコンが動かないため、ここで止めて原因を出す
