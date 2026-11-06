@@ -418,6 +418,24 @@ namespace BlinkExpress.Player.View
         }
 
         /// <summary>
+        /// ワープで壁に着弾したとき、壁から体の半径だけ離して張り付け、壁滑走を始める。
+        /// </summary>
+        /// <param name="position">着弾の位置（m）。</param>
+        /// <param name="normal">壁の法線（壁から体へ向かう向き）。</param>
+        /// <param name="direction">壁に沿った、着弾後の進む向き。</param>
+        /// <param name="speedMps">保つ速さ（m/s）。</param>
+        public void StartWallSlide(Vector3 position, Vector3 normal, Vector3 direction, float speedMps)
+        {
+            if (_presenter == null)
+            {
+                return;
+            }
+
+            var target = position + normal.normalized * 0.6f;
+            _presenter.StartWallSlide(target, normal, direction, speedMps);
+        }
+
+        /// <summary>
         /// ワープで着地する。天井の場合は、体を天井から少し下げて置く。
         /// </summary>
         /// <param name="position">着地の位置（m）。</param>

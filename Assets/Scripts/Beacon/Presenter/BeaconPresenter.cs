@@ -257,10 +257,34 @@ namespace BlinkExpress.Beacon.Presenter
                     _view.SetPlayerSpeed(WarpRules.SpeedAfter(outcome, _playerSpeedMps));
                     break;
 
+                case WarpOutcome.WallSlide:
+                    _chain = _flightChain;
+                    _lastWarpTimeSec = _gameTimeSec;
+                    var slideDirection = WallSlideDirection(hit.Normal, _flightDirection);
+                    _view.StartWallSlide(hit.Point, hit.Normal, slideDirection, boostedSpeed);
+                    break;
+
                 default:
-                    // 壁滑走とレールは、まだ実装していない（次の作業で扱う）
+                    // レールは、まだ実装していない（次の作業で扱う）
                     break;
             }
+        }
+
+        /// <summary>
+        /// 壁滑走の向きを求める。投げた向きを壁の面に投影する（真正面に投げたときは、水平の前方を使う）。
+        /// </summary>
+        /// <param name="normal">壁の法線（壁から体へ向かう向き）。</param>
+        /// <param name="throwDirection">投げた向き。</param>
+        /// <returns>壁に沿った、正規化した向き。</returns>
+        private static Vector3 WallSlideDirection(Vector3 normal, Vector3 throwDirection)
+        {
+            var projected = Vector3.ProjectOnPlane(throwDirection, normal);
+            if (projected.sqrMagnitude < 1e-4f)
+            {
+                projected = Vector3.ProjectOnPlane(Vector3.forward, normal);
+            }
+
+            return projected.normalized;
         }
 
         /// <summary>
