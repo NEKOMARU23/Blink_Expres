@@ -32,6 +32,14 @@ namespace BlinkExpress.EditorTools
             }
 
             var root = new GameObject(RootName).transform;
+
+            // 地面は、壁や仕掛けと区別がつくように、少し明るい緑にする
+            var ground = GameObject.Find("Ground");
+            if (ground != null)
+            {
+                ground.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.45f, 0.7f, 0.42f) };
+            }
+
             BuildWalls(root);
             BuildMudAndMushrooms(root);
             BuildLogs(root);
