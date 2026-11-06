@@ -30,7 +30,7 @@ namespace BlinkExpress.Stage.View
         }
 
         [SerializeField] private Transform _chaser;
-        [SerializeField] private float _chaserSpeedMps = 26f;
+        [SerializeField] private float _chaserSpeedMps = 20f;
         [SerializeField] private float _chaserDelaySec = 1.5f;
         [SerializeField] private float _chaserStartZ = -50f;
         [SerializeField] private float _chaserCatchGapM = 1.5f;
