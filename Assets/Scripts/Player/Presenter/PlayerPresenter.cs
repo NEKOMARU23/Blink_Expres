@@ -1,10 +1,11 @@
 using BlinkExpress.Player.Model;
+using UnityEngine;
 
 namespace BlinkExpress.Player.Presenter
 {
     /// <summary>
     /// プレイヤーの移動の Presenter。入力を Model に渡し、結果を IPlayerView に反映する。
-    /// Unity の API は使わない。
+    /// Unity の API は、位置と向きを表す Vector3 の型だけを使う。
     /// </summary>
     public sealed class PlayerPresenter
     {
@@ -34,6 +35,31 @@ namespace BlinkExpress.Player.Presenter
             _view.Move(_model.VelocityX * dt, _model.VelocityY * dt, _model.VelocityZ * dt);
             _view.Face(_model.YawRad);
             _view.ShowSpeed(_model.SpeedMps);
+        }
+
+        /// <summary>現在の速さ（m/s）。</summary>
+        public float SpeedMps => _model.SpeedMps;
+
+        /// <summary>
+        /// ワープで着地する。位置を移し、向きと速さを設定する。
+        /// </summary>
+        /// <param name="position">着地の位置（m）。</param>
+        /// <param name="direction">着地後の進む向き。</param>
+        /// <param name="speedMps">着地後の速さ（m/s）。</param>
+        public void Warp(Vector3 position, Vector3 direction, float speedMps)
+        {
+            _model.SetDirection(direction.x, direction.y, direction.z, speedMps);
+            _view.Teleport(position);
+            _view.Face(_model.YawRad);
+        }
+
+        /// <summary>
+        /// 速さだけを設定する（向きは変えない）。
+        /// </summary>
+        /// <param name="speedMps">設定する速さ（m/s）。</param>
+        public void SetSpeed(float speedMps)
+        {
+            _model.SetSpeed(speedMps);
         }
     }
 }
