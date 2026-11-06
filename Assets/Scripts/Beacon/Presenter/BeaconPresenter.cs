@@ -52,6 +52,15 @@ namespace BlinkExpress.Beacon.Presenter
         public float GaugeValue => _gauge.Value;
 
         /// <summary>
+        /// ゲージを回復する（コイン、粉砕など）。
+        /// </summary>
+        /// <param name="amount">回復する量（0〜1）。</param>
+        public void RefillGauge(float amount)
+        {
+            _gauge.Refill(amount);
+        }
+
+        /// <summary>
         /// 1フレーム分の処理を進める。
         /// </summary>
         /// <param name="input">このフレームの入力。</param>
