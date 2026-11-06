@@ -21,6 +21,12 @@ namespace BlinkExpress.Player.View
         /// <summary>立っているときの体の高さ（m）。</summary>
         private const float StandHeightM = 2f;
 
+        /// <summary>登れる壁の高さの下限（m）。仕様書「壁」の節：高さ 2.5 m より高い。</summary>
+        private const float ClimbableWallHeightM = 2.5f;
+
+        /// <summary>壁から離れたあと、同じ壁に再び張り付かない時間（秒）。</summary>
+        private const float NoStickSec = 1.2f;
+
         /// <summary>スライディング中の体の高さ（m）。仕様書「スライディング」：1.8 m → 0.9 m。</summary>
         private const float SlideHeightM = 0.9f;
 
@@ -30,6 +36,16 @@ namespace BlinkExpress.Player.View
 
         private CharacterController _controller;
         private PlayerPresenter _presenter;
+
+        // 直前の移動で当たった壁の情報（次のフレームの入力になる）
+        private bool _wallTouching;
+        private float _wallNormalX;
+        private float _wallNormalZ;
+        private float _wallTopY;
+
+        // 壁から離れた直後は、同じ壁に張り付かないようにする
+        private float _ignoreWallUntilSec;
+        private bool _wasOnWall;
 
         /// <summary>地面に立っているか（CharacterController の判定）。</summary>
         public bool IsGrounded => _controller.isGrounded;
@@ -71,13 +87,83 @@ namespace BlinkExpress.Player.View
                 lean,
                 keyboard.spaceKey.wasPressedThisFrame,
                 slideHeld,
-                HeadClear());
+                HeadClear(),
+                ReadWallContact());
 
             // 照準中はゲーム内時間が遅くなるので、プレイヤーの移動もそれに合わせる
             var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f);
             _presenter.Tick(input, worldDt);
 
             ApplyBodyHeight();
+            UpdateNoStick();
+        }
+
+        /// <summary>
+        /// 直前の移動で当たった壁から、壁の接触の情報を作る。壁から離れた直後は無視する。
+        /// </summary>
+        private WallContact ReadWallContact()
+        {
+            var touching = _wallTouching && Time.time >= _ignoreWallUntilSec;
+            _wallTouching = false;
+            if (!touching)
+            {
+                return default;
+            }
+
+            var topReached = transform.position.y >= _wallTopY - 0.5f;
+            return new WallContact(true, _wallNormalX, _wallNormalZ, topReached, HeightAboveGroundM());
+        }
+
+        /// <summary>
+        /// 壁のぼりや壁走りを終えたとき、その直後は同じ壁に張り付かないように時間を置く。
+        /// </summary>
+        private void UpdateNoStick()
+        {
+            var onWall = _presenter.IsClimbing || _presenter.IsRunning;
+            if (_wasOnWall && !onWall)
+            {
+                _ignoreWallUntilSec = Time.time + NoStickSec;
+            }
+
+            _wasOnWall = onWall;
+        }
+
+        /// <summary>
+        /// 体が当たったときに呼ばれる（CharacterController の移動の中）。登れる壁なら記録する。
+        /// </summary>
+        private void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            // 地面と天井は壁ではない
+            if (hit.normal.y > 0.5f || hit.normal.y < -0.5f)
+            {
+                return;
+            }
+
+            var bounds = hit.collider.bounds;
+            var climbable = bounds.size.y > ClimbableWallHeightM && transform.position.y < bounds.max.y - 1f;
+            if (!climbable)
+            {
+                return;
+            }
+
+            _wallTouching = true;
+            _wallNormalX = hit.normal.x;
+            _wallNormalZ = hit.normal.z;
+            _wallTopY = bounds.max.y;
+        }
+
+        /// <summary>
+        /// 体の真下の地面までの高さ（m）。地面が見つからなければ大きな値を返す。
+        /// </summary>
+        private float HeightAboveGroundM()
+        {
+            var origin = transform.position + Vector3.up * 0.5f;
+            if (Physics.Raycast(origin, Vector3.down, out var hit, 100f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                return transform.position.y - hit.point.y;
+            }
+
+            return 100f;
         }
 
         /// <summary>
