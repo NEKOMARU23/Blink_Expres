@@ -1,3 +1,5 @@
+using BlinkExpress.Beacon.Model;
+using BlinkExpress.Beacon.View;
 using BlinkExpress.Player.Model;
 using BlinkExpress.Player.Presenter;
 using BlinkExpress.Tuning;
@@ -13,14 +15,24 @@ namespace BlinkExpress.Player.View
     [RequireComponent(typeof(CharacterController))]
     public sealed class PlayerView : MonoBehaviour, IPlayerView
     {
+        /// <summary>天井にワープしたとき、体を天井からどれだけ下げて置くか（m）。</summary>
+        private const float CeilingDropM = 2.1f;
+
         [SerializeField] private PlayerTuning _tuning;
         [SerializeField] private ChaseCameraView _chaseCamera;
+        [SerializeField] private BeaconView _beacon;
 
         private CharacterController _controller;
         private PlayerPresenter _presenter;
 
         /// <summary>地面に立っているか（CharacterController の判定）。</summary>
         public bool IsGrounded => _controller.isGrounded;
+
+        /// <summary>プレイヤーの現在の位置（m）。</summary>
+        public Vector3 Position => transform.position;
+
+        /// <summary>プレイヤーの現在の速さ（m/s）。</summary>
+        public float SpeedMps => _presenter != null ? _presenter.SpeedMps : 0f;
 
         private void Awake()
         {
@@ -47,7 +59,53 @@ namespace BlinkExpress.Player.View
 
             var lean = (keyboard.aKey.isPressed ? 1f : 0f) - (keyboard.dKey.isPressed ? 1f : 0f);
             var input = new MovementInput(keyboard.sKey.isPressed, _chaseCamera.YawRad, lean);
-            _presenter.Tick(input, Time.deltaTime);
+
+            // 照準中はゲーム内時間が遅くなるので、プレイヤーの移動もそれに合わせる
+            var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f);
+            _presenter.Tick(input, worldDt);
+        }
+
+        /// <summary>
+        /// ワープで着地する。天井の場合は、体を天井から少し下げて置く。
+        /// </summary>
+        /// <param name="position">着地の位置（m）。</param>
+        /// <param name="direction">着地後の進む向き。</param>
+        /// <param name="speedMps">着地後の速さ（m/s）。</param>
+        /// <param name="outcome">ワープの結果。</param>
+        public void WarpTo(Vector3 position, Vector3 direction, float speedMps, WarpOutcome outcome)
+        {
+            if (_presenter == null)
+            {
+                return;
+            }
+
+            var target = outcome == WarpOutcome.Ceiling ? position + Vector3.down * CeilingDropM : position;
+            _presenter.Warp(target, direction, speedMps);
+        }
+
+        /// <summary>
+        /// 速さだけを設定する（向きは変えない）。
+        /// </summary>
+        /// <param name="speedMps">設定する速さ（m/s）。</param>
+        public void SetSpeed(float speedMps)
+        {
+            if (_presenter == null)
+            {
+                return;
+            }
+
+            _presenter.SetSpeed(speedMps);
+        }
+
+        /// <summary>
+        /// CharacterController を一度止めてから位置を変える（移動のずれを防ぐため）。
+        /// </summary>
+        /// <param name="position">移動先の位置（m）。</param>
+        public void Teleport(Vector3 position)
+        {
+            _controller.enabled = false;
+            transform.position = position;
+            _controller.enabled = true;
         }
 
         /// <summary>
