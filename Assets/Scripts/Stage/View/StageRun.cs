@@ -116,6 +116,7 @@ namespace BlinkExpress.Stage.View
             _clockSec = 0f;
             _chaserZ = _chaserStartZ;
             ResetCoins();
+            ResetEnemies();
             _currentTrack = new GhostTrack();
             _recorder = new GhostRecorder(_currentTrack);
             _hasBest = GhostStore.TryLoad(out _bestTrack, out _bestTimeSec);
@@ -131,6 +132,17 @@ namespace BlinkExpress.Stage.View
             }
 
             UpdateHud();
+        }
+
+        /// <summary>
+        /// 粉砕された敵を、元の位置に戻す（リスタートのため）。
+        /// </summary>
+        private static void ResetEnemies()
+        {
+            foreach (var enemy in FindObjectsByType<EnemyView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                enemy.ResetForRun();
+            }
         }
 
         /// <summary>
