@@ -170,6 +170,15 @@ namespace BlinkExpress.EditorTools
                 col.size = new Vector3(m[1] - m[0], 1f, m[3] - m[2]);
                 var zone = mud.AddComponent<BlinkExpress.Stage.View.HazardZone>();
                 SetZoneKind(zone, BlinkExpress.Stage.View.HazardZone.Kind.Mud);
+
+                // 見た目の泥（地面の上に薄く敷く。当たりは上の Trigger が担当する）
+                var visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                visual.name = "Visual";
+                visual.transform.SetParent(mud.transform, false);
+                visual.transform.localPosition = new Vector3(0f, -0.45f, 0f);
+                visual.transform.localScale = new Vector3(m[1] - m[0], 0.1f, m[3] - m[2]);
+                Object.DestroyImmediate(visual.GetComponent<Collider>());
+                visual.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.48f, 0.34f, 0.2f) };
             }
 
             var mushrooms = new[] { new[] { 12f, 90f }, new[] { 15f, 700f }, new[] { 12f, 1048f }, new[] { -12f, 1048f }, new[] { -15f, 1185f }, new[] { 0f, 1410f } };
