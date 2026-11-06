@@ -246,6 +246,17 @@ namespace BlinkExpress.EditorTools
                 so.FindProperty("_start").objectReferenceValue = start;
                 so.FindProperty("_end").objectReferenceValue = end;
                 so.ApplyModifiedProperties();
+
+                // 見た目の黄色い棒（円柱を、始点から終点へ向ける。当たりはなく、乗るのは GrindRail が担当する）
+                var bar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                bar.name = "Bar";
+                bar.transform.SetParent(rail.transform, false);
+                var delta = end.position - start.position;
+                bar.transform.position = (start.position + end.position) / 2f;
+                bar.transform.rotation = Quaternion.FromToRotation(Vector3.up, delta.normalized);
+                bar.transform.localScale = new Vector3(0.22f, delta.magnitude / 2f, 0.22f);
+                Object.DestroyImmediate(bar.GetComponent<Collider>());
+                bar.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(1f, 0.82f, 0.2f) };
             }
         }
 
