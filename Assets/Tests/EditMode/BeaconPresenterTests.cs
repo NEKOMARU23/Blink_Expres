@@ -21,6 +21,9 @@ namespace BlinkExpress.Tests
         {
             public readonly List<(Vector3 Position, Vector3 Direction, float Speed, WarpOutcome Outcome)> Warps = new List<(Vector3, Vector3, float, WarpOutcome)>();
             public AimFeedback LastFeedback;
+
+            /// <summary>床に当たったときの種類。レールに当たった場合を試すために変えられる。</summary>
+            public HitKind FloorKind = HitKind.Ground;
             public bool PreviewShown;
 
             public bool Raycast(Vector3 from, Vector3 to, out BeaconHit hit)
@@ -31,7 +34,7 @@ namespace BlinkExpress.Tests
                     var t = from.y / (from.y - to.y);
                     var point = Vector3.Lerp(from, to, t);
                     point.y = 0f;
-                    hit = new BeaconHit(HitKind.Ground, point, Vector3.up, 0f);
+                    hit = new BeaconHit(FloorKind, point, Vector3.up, 0f);
                     return true;
                 }
 
@@ -110,6 +113,40 @@ namespace BlinkExpress.Tests
             Assert.That(view.Warps[0].Position.y, Is.EqualTo(0f).Within(0.001f));
             // 水平に投げた（+Z）ので、着地は前方にある
             Assert.That(view.Warps[0].Position.z, Is.GreaterThan(15f));
+        }
+
+        [Test]
+        public void ThrowOntoRailWarpsPlayerToRailWithBoost()
+        {
+            // レールに着弾したら、レール上の点へ運ぶ。速さはほかのワープと同じく +3 m/s、向きは投げた向きの水平成分
+            var view = new FakeBeaconView { FloorKind = HitKind.Rail };
+            var presenter = new BeaconPresenter(view, new BeaconSettings());
+
+            AimAndThrow(presenter);
+            Idle(presenter, 2f);
+
+            Assert.That(view.Warps.Count, Is.EqualTo(1));
+            Assert.That(view.Warps[0].Outcome, Is.EqualTo(WarpOutcome.Rail));
+            Assert.That(view.Warps[0].Speed, Is.EqualTo(17f).Within(0.001f));
+            Assert.That(view.Warps[0].Direction.z, Is.GreaterThan(0.99f));
+            Assert.That(view.Warps[0].Direction.y, Is.EqualTo(0f).Within(0.001f));
+        }
+
+        [Test]
+        public void RailWarpCountsAsChain()
+        {
+            // レールへのワープも、ほかのワープと同じようにチェインに数える
+            var view = new FakeBeaconView { FloorKind = HitKind.Rail };
+            var presenter = new BeaconPresenter(view, new BeaconSettings());
+
+            AimAndThrow(presenter);
+            Idle(presenter, 0.5f);
+            Idle(presenter, 0.6f);
+            AimAndThrow(presenter);
+            Idle(presenter, 2f);
+
+            Assert.That(view.Warps.Count, Is.EqualTo(2));
+            Assert.That(view.Warps[1].Speed, Is.EqualTo(20f).Within(0.001f));
         }
 
         [Test]

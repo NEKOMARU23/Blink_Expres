@@ -497,6 +497,12 @@ namespace BlinkExpress.Player.View
                 return;
             }
 
+            // レールへのワープは、降りた直後の「乗らない時間」を無視して、すぐ乗れるようにする
+            if (outcome == WarpOutcome.Rail)
+            {
+                _railBlockedUntilSec = 0f;
+            }
+
             var target = outcome == WarpOutcome.Ceiling ? position + Vector3.down * CeilingDropM : position;
             _presenter.Warp(target, direction, speedMps);
         }

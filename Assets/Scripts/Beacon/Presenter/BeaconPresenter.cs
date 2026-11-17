@@ -243,6 +243,9 @@ namespace BlinkExpress.Beacon.Presenter
             {
                 case WarpOutcome.Ground:
                 case WarpOutcome.Ceiling:
+                case WarpOutcome.Rail:
+                    // レールは、レール上の点へ運ぶ。進む向きは投げた向きの水平成分で、
+                    // どちら側へ進むかは、乗ったあとのプレイヤーが投げた向きに近い側を選ぶ
                     _chain = _flightChain;
                     _lastWarpTimeSec = _gameTimeSec;
                     var direction = LandingDirection(outcome, _flightDirection);
@@ -265,7 +268,6 @@ namespace BlinkExpress.Beacon.Presenter
                     break;
 
                 default:
-                    // レールは、まだ実装していない（次の作業で扱う）
                     break;
             }
         }

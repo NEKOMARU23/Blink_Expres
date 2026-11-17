@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using BlinkExpress.Beacon.Model;
 using BlinkExpress.Beacon.Presenter;
 using BlinkExpress.Player.View;
+using BlinkExpress.Stage.View;
 using BlinkExpress.Tuning;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -24,6 +25,7 @@ namespace BlinkExpress.Beacon.View
         private LineRenderer _preview;
         private GameObject _beaconVisual;
         private Text _label;
+        private GrindRail[] _rails;
 
         /// <summary>ゲーム内時間の速さ（0〜1）。照準中は遅くなり、プレイヤーの移動もこれに合わせる。</summary>
         public float WorldTimeScale => _presenter != null ? _presenter.WorldTimeScale : 1f;
@@ -51,6 +53,7 @@ namespace BlinkExpress.Beacon.View
             }
 
             _presenter = new BeaconPresenter(this, _tuning.ToBeaconSettings());
+            _rails = FindObjectsByType<GrindRail>(FindObjectsSortMode.None);
             CreatePreviewLine();
             CreateBeaconVisual();
             CreateLabel();
@@ -106,11 +109,33 @@ namespace BlinkExpress.Beacon.View
 
             if (!found)
             {
-                return false;
+                // 何にも当たらなければ、ビーコンの位置がレールの近くかを調べる（レールは細くて Raycast では当てにくい）
+                return TryHitRail(to, out hit);
             }
 
             hit = new BeaconHit(ClassifySurface(nearest), nearest.point, nearest.normal, 0f);
             return true;
+        }
+
+        /// <summary>
+        /// ビーコンの位置がレールの近くなら、いちばん近いレールに着弾したことにする。
+        /// </summary>
+        private bool TryHitRail(Vector3 beacon, out BeaconHit hit)
+        {
+            hit = default;
+            var found = false;
+            var bestDistance = float.MaxValue;
+            foreach (var rail in _rails)
+            {
+                if (RailWarp.TryCatch(rail.StartPoint, rail.EndPoint, beacon, out var closest, out var distance) && distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    hit = new BeaconHit(HitKind.Rail, closest, Vector3.up, 0f);
+                    found = true;
+                }
+            }
+
+            return found;
         }
 
         /// <summary>
