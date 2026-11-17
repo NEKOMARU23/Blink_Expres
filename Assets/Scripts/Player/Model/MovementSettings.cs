@@ -96,6 +96,9 @@ namespace BlinkExpress.Player.Model
         /// <summary>障害物で速さが減るとみなす、進む向きと面の内積の下限。</summary>
         public float ObstacleMinIntoDot { get; set; } = 0.35f;
 
+        /// <summary>接触トラップに触れたときの、速さの倍率（仕様書「トラップと障害物」の節。暫定の値）。</summary>
+        public float ContactTrapSpeedRatio { get; set; } = 0.5f;
+
         /// <summary>天井に当たったあとの速さの倍率。</summary>
         public float CeilingSpeedRatio { get; set; } = 0.55f;
     }

@@ -16,8 +16,10 @@ namespace BlinkExpress.Player.Model
         /// <param name="railDirZ">レールに沿った進む向きの Z 成分（水平、正規化されていること）。</param>
         /// <param name="obstacleIntoDot">登れない障害物に当たったときの、進む向きと面の内積（当たっていなければ 0）。</param>
         /// <param name="ceilingHit">天井に当たったか。</param>
-        public HazardContact(bool onMud, bool mushroomNear, bool onRail, float railDirX, float railDirZ, float obstacleIntoDot, bool ceilingHit)
+        /// <param name="onContactTrap">接触トラップ（粘着する草など）に触れているか。</param>
+        public HazardContact(bool onMud, bool mushroomNear, bool onRail, float railDirX, float railDirZ, float obstacleIntoDot, bool ceilingHit, bool onContactTrap = false)
         {
+            OnContactTrap = onContactTrap;
             OnMud = onMud;
             MushroomNear = mushroomNear;
             OnRail = onRail;
@@ -47,5 +49,8 @@ namespace BlinkExpress.Player.Model
 
         /// <summary>天井に当たったか。</summary>
         public bool CeilingHit { get; }
+
+        /// <summary>接触トラップ（粘着する草など）に触れているか。</summary>
+        public bool OnContactTrap { get; }
     }
 }
