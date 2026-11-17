@@ -16,6 +16,9 @@ namespace BlinkExpress.Stage.View
 
             /// <summary>跳ねるキノコ。踏むと跳ねる。</summary>
             Mushroom,
+
+            /// <summary>接触トラップ（平原では粘着する草）。触れると大きく減速する。</summary>
+            ContactTrap,
         }
 
         [SerializeField] private Kind _kind = Kind.Mud;

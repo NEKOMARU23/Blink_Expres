@@ -317,6 +317,7 @@ namespace BlinkExpress.Player.View
             var feet = transform.position;
             var onMud = TouchesZone(feet + Vector3.up * 0.2f, 0.3f, HazardZone.Kind.Mud);
             var nearMushroom = TouchesZone(feet + Vector3.up * 0.6f, 0.5f, HazardZone.Kind.Mushroom);
+            var onTrap = TouchesZone(feet + Vector3.up * 0.2f, 0.3f, HazardZone.Kind.ContactTrap);
             var onRail = FindRail(out var railDirX, out var railDirZ);
             _onRail = onRail;
 
@@ -325,7 +326,7 @@ namespace BlinkExpress.Player.View
             _obstacleIntoDot = 0f;
             _ceilingHit = false;
 
-            return new HazardContact(onMud, nearMushroom, onRail, railDirX, railDirZ, obstacle, ceiling);
+            return new HazardContact(onMud, nearMushroom, onRail, railDirX, railDirZ, obstacle, ceiling, onTrap);
         }
 
         /// <summary>
