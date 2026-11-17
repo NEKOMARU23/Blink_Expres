@@ -325,26 +325,26 @@ namespace BlinkExpress.EditorTools
             CoinLine(parent, 0f, 1.2f, 1445f, 0f, 1.2f, 1495f, 6);
         }
 
-        /// <summary>敵（39体）。硬さと、左右に揺れるかは仕様どおり。逃げる敵は、今は動かない（後で実装）。</summary>
+        /// <summary>敵（39体）。硬さと動き（動かない・左右に揺れる・逃げる）は、デモ版どおり。</summary>
         private static void BuildEnemies(Transform root)
         {
             var parent = new GameObject("Enemies").transform;
             parent.SetParent(root, false);
 
-            // tier（0 やわらかい・1 ふつう・2 かたい）、x、z、動き（true で左右に揺れる）、足元の高さ
+            // tier（0 やわらかい・1 ふつう・2 かたい）、x、z、動き（0 動かない・1 左右に揺れる・2 逃げる）、足元の高さ
             var defs = new[]
             {
                 new[] { 0f, -6f, 70f, 0f, 0f }, new[] { 0f, 0f, 76f, 1f, 0f }, new[] { 0f, 6f, 70f, 0f, 0f },
-                new[] { 0f, -12f, 110f, 0f, 0f }, new[] { 0f, 12f, 110f, 0f, 0f },
+                new[] { 0f, -12f, 110f, 2f, 0f }, new[] { 0f, 12f, 110f, 0f, 0f },
                 new[] { 1f, -10f, 180f, 0f, 0f }, new[] { 1f, 10f, 186f, 1f, 0f }, new[] { 0f, 14f, 250f, 0f, 0f }, new[] { 0f, -14f, 252f, 0f, 0f },
-                new[] { 1f, 0f, 300f, 0f, 0f }, new[] { 1f, -12f, 306f, 0f, 0f }, new[] { 0f, 12f, 300f, 0f, 0f }, new[] { 0f, 0f, 400f, 1f, 0f },
+                new[] { 1f, 0f, 300f, 2f, 0f }, new[] { 1f, -12f, 306f, 0f, 0f }, new[] { 0f, 12f, 300f, 0f, 0f }, new[] { 0f, 0f, 400f, 1f, 0f },
                 new[] { 2f, 0f, 520f, 0f, 0f }, new[] { 1f, -12f, 526f, 0f, 0f }, new[] { 1f, 12f, 526f, 1f, 0f }, new[] { 0f, 0f, 632f, 1f, 0f },
                 new[] { 1f, -8f, 655f, 0f, 0f }, new[] { 1f, 8f, 655f, 0f, 0f },
                 new[] { 0f, -12f, 690f, 0f, 3f }, new[] { 0f, -4f, 730f, 0f, 9f }, new[] { 0f, -14f, 750f, 0f, 12f }, new[] { 1f, 15f, 720f, 1f, 0f },
                 new[] { 0f, -15f, 885f, 0f, 0f }, new[] { 1f, 15f, 915f, 0f, 0f }, new[] { 0f, -15f, 945f, 0f, 0f }, new[] { 1f, 0f, 880f, 1f, 0f },
-                new[] { 2f, -14f, 1030f, 0f, 0f }, new[] { 2f, 14f, 1030f, 0f, 0f }, new[] { 1f, 0f, 1040f, 0f, 0f },
+                new[] { 2f, -14f, 1030f, 0f, 0f }, new[] { 2f, 14f, 1030f, 0f, 0f }, new[] { 1f, 0f, 1040f, 2f, 0f },
                 new[] { 0f, -10f, 1123f, 0f, 4f }, new[] { 0f, 6f, 1143f, 0f, 5f }, new[] { 0f, 10f, 1183f, 0f, 4f },
-                new[] { 2f, 0f, 1330f, 0f, 0f }, new[] { 1f, -10f, 1340f, 1f, 0f }, new[] { 2f, -6f, 1400f, 0f, 0f }, new[] { 2f, 6f, 1400f, 0f, 0f }, new[] { 1f, 4f, 1440f, 0f, 0f }, new[] { 0f, -4f, 1465f, 0f, 0f },
+                new[] { 2f, 0f, 1330f, 0f, 0f }, new[] { 1f, -10f, 1340f, 1f, 0f }, new[] { 2f, -6f, 1400f, 0f, 0f }, new[] { 2f, 6f, 1400f, 0f, 0f }, new[] { 1f, 4f, 1440f, 2f, 0f }, new[] { 0f, -4f, 1465f, 0f, 0f },
             };
 
             for (var i = 0; i < defs.Length; i++)
@@ -369,7 +369,8 @@ namespace BlinkExpress.EditorTools
                 var view = go.AddComponent<EnemyView>();
                 var so = new SerializedObject(view);
                 so.FindProperty("_tier").enumValueIndex = (int)tier;
-                so.FindProperty("_swayRangeM").floatValue = d[3] > 0.5f ? 5f : 0f;
+                so.FindProperty("_swayRangeM").floatValue = Mathf.Approximately(d[3], 1f) ? 5f : 0f;
+                so.FindProperty("_fleesFromPlayer").boolValue = Mathf.Approximately(d[3], 2f);
                 so.ApplyModifiedProperties();
             }
         }
