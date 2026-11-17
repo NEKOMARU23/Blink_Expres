@@ -1,11 +1,13 @@
+using BlinkExpress.Beacon.View;
 using BlinkExpress.Enemy.Model;
+using BlinkExpress.Player.View;
 using UnityEngine;
 
 namespace BlinkExpress.Enemy.View
 {
     /// <summary>
     /// 敵の View。硬さに応じた当たりの範囲（Trigger のコライダー）を持ち、粉砕されると消える。
-    /// 見た目は仮の立方体。動きは、左右に揺れるか、動かないかの2種類。
+    /// 見た目は仮の立方体。動きは、動かない・左右に揺れる・逃げる、の3種類。
     /// </summary>
     public sealed class EnemyView : MonoBehaviour
     {
@@ -17,8 +19,13 @@ namespace BlinkExpress.Enemy.View
         /// <summary>左右に揺れる速さ（rad/s）。</summary>
         [SerializeField] private float _swaySpeedRadPerSec = 1.3f;
 
+        /// <summary>true なら、プレイヤーが前方 35 m 以内に来たら横へ逃げる（揺れる設定より優先）。</summary>
+        [SerializeField] private bool _fleesFromPlayer;
+
         private Vector3 _home;
         private bool _alive = true;
+        private PlayerView _player;
+        private BeaconView _beacon;
 
         /// <summary>敵の硬さ。</summary>
         public EnemyTier Tier => _tier;
@@ -36,17 +43,53 @@ namespace BlinkExpress.Enemy.View
         {
             _home = transform.position;
             EnsureTrigger();
+
+            // 逃げる敵だけ、プレイヤーと照準の状態を調べておく（毎フレーム探さない）
+            if (_fleesFromPlayer)
+            {
+                _player = FindFirstObjectByType<PlayerView>();
+                _beacon = FindFirstObjectByType<BeaconView>();
+            }
         }
 
         private void Update()
         {
-            if (!_alive || _swayRangeM <= 0f)
+            if (!_alive)
+            {
+                return;
+            }
+
+            if (_fleesFromPlayer)
+            {
+                Flee();
+                return;
+            }
+
+            if (_swayRangeM <= 0f)
             {
                 return;
             }
 
             var offset = Mathf.Sin(Time.time * _swaySpeedRadPerSec) * _swayRangeM;
             transform.position = _home + Vector3.right * offset;
+        }
+
+        /// <summary>
+        /// プレイヤーから横へ逃げる。照準中は世界が遅くなるので、逃げる量もそれに合わせる。
+        /// プレイヤーがいなければ、逃げずにその場にいる（ゲームは止まらない）。
+        /// </summary>
+        private void Flee()
+        {
+            if (_player == null)
+            {
+                return;
+            }
+
+            var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f);
+            var position = transform.position;
+            var playerPosition = _player.transform.position;
+            position.x = EnemyFlee.StepX(position.x, position.z, playerPosition.x, playerPosition.z, worldDt);
+            transform.position = position;
         }
 
         /// <summary>
