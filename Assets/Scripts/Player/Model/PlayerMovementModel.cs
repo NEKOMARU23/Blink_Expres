@@ -15,6 +15,9 @@ namespace BlinkExpress.Player.Model
         /// <summary>ジャンプの上向きの割合の上限（仕様書「ジャンプ」の節：最大 0.8）。</summary>
         private const float JumpMaxUpRatio = 0.8f;
 
+        /// <summary>横の壁で、壁滑走を始める最低の高さ（m）。これより低いと地面と入れ替わってちらつく。</summary>
+        private const float ContactSlideMinHeightM = 0.5f;
+
         private readonly MovementSettings _settings;
         private float _vx;
         private float _vy;
@@ -25,6 +28,9 @@ namespace BlinkExpress.Player.Model
         private float _wallNormalX;
         private float _wallNormalZ;
         private float _runTimeLeft;
+        private bool _slideFromContact;
+        private float _contactSlideAgeSec;
+        private float _noContactSec;
         private bool _climbKickUsed;
         private bool _mushroomLatched;
         private bool _obstacleLatched;
@@ -122,10 +128,19 @@ namespace BlinkExpress.Player.Model
         /// <param name="dt">経過時間（秒）。</param>
         public void Tick(MovementInput input, bool grounded, float dt)
         {
-            // 横の壁から離れたら、壁走りを終える
-            // 壁走りは壁から離れると終わる。壁滑走は、地面に着くまで続く
-            if ((_wallMode == WallMode.Run && (grounded || !input.Wall.Touching))
-                || (_wallMode == WallMode.Slide && grounded))
+            // 壁走りは壁から離れると終わる。壁滑走は、地面に着くまで続く。
+            // 壁に当たって始めた滑走は、壁から離れたら（少し待ってから）終わる
+            if (_wallMode == WallMode.Slide)
+            {
+                _contactSlideAgeSec += dt;
+            }
+
+            // 壁に沿って進むと接触の判定が途切れることがあるので、途切れても少しの間は壁走りを続ける
+            _noContactSec = input.Wall.Touching ? 0f : _noContactSec + dt;
+
+            if ((_wallMode == WallMode.Run && (grounded || (_runTimeLeft <= 0f && _noContactSec > 0.2f)))
+                || (_wallMode == WallMode.Slide && grounded)
+                || (_wallMode == WallMode.Slide && _slideFromContact && !input.Wall.Touching && _contactSlideAgeSec > 0.15f))
             {
                 _wallMode = WallMode.None;
             }
@@ -280,10 +295,38 @@ namespace BlinkExpress.Player.Model
                 return;
             }
 
-            if (!grounded && input.Wall.HeightAboveGroundM >= _settings.WallRunMinHeightM)
+            if (grounded)
+            {
+                return;
+            }
+
+            // 横から空中で当たった：高ければ壁走り、低ければ壁に沿って滑り落ちる（壁滑走）
+            if (input.Wall.HeightAboveGroundM >= _settings.WallRunMinHeightM)
             {
                 StartRun(input.Wall);
             }
+            else if (input.Wall.HeightAboveGroundM >= ContactSlideMinHeightM)
+            {
+                // 足元に近いところでは地面の判定と入れ替わって、状態がちらつくので滑らせない
+                StartContactSlide(input.Wall);
+            }
+        }
+
+        /// <summary>
+        /// 横から低い位置で壁に当たったとき、壁に沿って滑り落ちる（壁滑走）。
+        /// 壁から離れると終わる。速さは保つ。
+        /// </summary>
+        private void StartContactSlide(WallContact wall)
+        {
+            _wallMode = WallMode.Slide;
+            _slideFromContact = true;
+            _contactSlideAgeSec = 0f;
+            _wallNormalX = wall.NormalX;
+            _wallNormalZ = wall.NormalZ;
+            _runTimeLeft = 0f;
+            _doubleJumpUsed = false;
+            _sliding = false;
+            AlongWall(SpeedMps);
         }
 
         /// <summary>壁のぼりを始める。上昇速度は今の速さから始まる（仕様書「壁」の節）。</summary>
@@ -313,6 +356,7 @@ namespace BlinkExpress.Player.Model
         public void StartWallSlide(float normalX, float normalZ, float dirX, float dirY, float dirZ, float speedMps)
         {
             _wallMode = WallMode.Slide;
+            _slideFromContact = false;
             _wallNormalX = normalX;
             _wallNormalZ = normalZ;
             _runTimeLeft = 0f;
