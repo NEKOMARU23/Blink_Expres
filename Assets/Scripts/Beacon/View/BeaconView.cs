@@ -183,6 +183,12 @@ namespace BlinkExpress.Beacon.View
             _player.WarpTo(position, direction, speedMps, outcome);
         }
 
+        /// <summary>ワープで壁に着弾したとき、プレイヤーを壁に張り付けて壁滑走を始める。</summary>
+        public void StartWallSlide(Vector3 position, Vector3 normal, Vector3 direction, float speedMps)
+        {
+            _player.StartWallSlide(position, normal, direction, speedMps);
+        }
+
         /// <summary>プレイヤーの速さだけを設定する。</summary>
         public void SetPlayerSpeed(float speedMps)
         {

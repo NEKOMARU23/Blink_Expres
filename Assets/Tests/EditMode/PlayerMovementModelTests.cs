@@ -412,6 +412,33 @@ namespace BlinkExpress.Tests
         }
 
         [Test]
+        public void WallSlideKeepsSpeedAndFallsAlongWall()
+        {
+            // 壁滑走：速さ 20 m/s のまま、重力（13 m/s²）で下へ滑る。壁から離れる向きには出ない
+            var model = new PlayerMovementModel(CreateSettings());
+            model.StartWallSlide(-1f, 0f, 0f, 0f, 1f, 20f);
+            var before = model.VelocityY;
+
+            model.Tick(new MovementInput(false, 0f, 0f), false, 0.5f);
+
+            Assert.That(model.SpeedMps, Is.EqualTo(20f).Within(0.05f));
+            Assert.That(model.VelocityY, Is.LessThan(before));
+            Assert.That(model.VelocityX, Is.EqualTo(0f).Within(0.01f));
+        }
+
+        [Test]
+        public void WallSlideEndsOnGround()
+        {
+            var model = new PlayerMovementModel(CreateSettings());
+            model.StartWallSlide(-1f, 0f, 0f, -0.5f, 1f, 20f);
+
+            model.Tick(new MovementInput(false, 0f, 0f), true, 0.1f);
+
+            Assert.That(model.IsRunning, Is.False);
+            Assert.That(model.IsClimbing, Is.False);
+        }
+
+        [Test]
         public void SetDirectionSetsHeadingAndSpeed()
         {
             // ワープの着地で、向きと速さを設定できる（+X 方向、速さ 20 m/s）

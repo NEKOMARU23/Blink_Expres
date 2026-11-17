@@ -45,6 +45,15 @@ namespace BlinkExpress.Beacon.Presenter
         /// <param name="outcome">ワープの結果。</param>
         void WarpPlayer(Vector3 position, Vector3 direction, float speedMps, WarpOutcome outcome);
 
+        /// <summary>
+        /// ワープで壁に着弾したとき、プレイヤーを壁に張り付けて壁滑走を始める。
+        /// </summary>
+        /// <param name="position">着弾の位置（m）。</param>
+        /// <param name="normal">壁の法線（壁から体へ向かう向き）。</param>
+        /// <param name="direction">壁に沿った、着弾後の進む向き。</param>
+        /// <param name="speedMps">保つ速さ（m/s）。</param>
+        void StartWallSlide(Vector3 position, Vector3 normal, Vector3 direction, float speedMps);
+
         /// <summary>プレイヤーの速さだけを設定する（弾かれたときなど）。</summary>
         /// <param name="speedMps">設定する速さ（m/s）。</param>
         void SetPlayerSpeed(float speedMps);

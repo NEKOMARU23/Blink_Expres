@@ -36,6 +36,7 @@ namespace BlinkExpress.Player.Model
             None,
             Climb,
             Run,
+            Slide,
         }
 
         /// <summary>
@@ -122,7 +123,9 @@ namespace BlinkExpress.Player.Model
         public void Tick(MovementInput input, bool grounded, float dt)
         {
             // 横の壁から離れたら、壁走りを終える
-            if (_wallMode == WallMode.Run && (grounded || !input.Wall.Touching))
+            // 壁走りは壁から離れると終わる。壁滑走は、地面に着くまで続く
+            if ((_wallMode == WallMode.Run && (grounded || !input.Wall.Touching))
+                || (_wallMode == WallMode.Slide && grounded))
             {
                 _wallMode = WallMode.None;
             }
@@ -295,6 +298,28 @@ namespace BlinkExpress.Player.Model
             _vx = 0f;
             _vz = 0f;
             _vy = speed;
+        }
+
+        /// <summary>
+        /// ワープで壁に着弾したとき、壁滑走を始める。速さは保ち、重力で壁に沿って下へ滑る。
+        /// 地面に着くと終わる。仕様書「着弾したものごとの結果」の壁滑走。
+        /// </summary>
+        /// <param name="normalX">壁の法線の X 成分（壁から体へ向かう向き）。</param>
+        /// <param name="normalZ">壁の法線の Z 成分（壁から体へ向かう向き）。</param>
+        /// <param name="dirX">着弾後の進む向きの X 成分（壁に沿っていること）。</param>
+        /// <param name="dirY">着弾後の進む向きの Y 成分。</param>
+        /// <param name="dirZ">着弾後の進む向きの Z 成分（壁に沿っていること）。</param>
+        /// <param name="speedMps">保つ速さ（m/s）。</param>
+        public void StartWallSlide(float normalX, float normalZ, float dirX, float dirY, float dirZ, float speedMps)
+        {
+            _wallMode = WallMode.Slide;
+            _wallNormalX = normalX;
+            _wallNormalZ = normalZ;
+            _runTimeLeft = 0f;
+            _doubleJumpUsed = false;
+            _sliding = false;
+            SetDirection(dirX, dirY, dirZ, speedMps);
+            AlongWall(speedMps);
         }
 
         /// <summary>壁走りを始める。速さは保ったまま、壁に沿った向きにする。</summary>

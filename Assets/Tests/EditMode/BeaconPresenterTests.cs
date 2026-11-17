@@ -62,6 +62,10 @@ namespace BlinkExpress.Tests
                 Warps.Add((position, direction, speedMps, outcome));
             }
 
+            public void StartWallSlide(Vector3 position, Vector3 normal, Vector3 direction, float speedMps)
+            {
+            }
+
             public void SetPlayerSpeed(float speedMps)
             {
             }
