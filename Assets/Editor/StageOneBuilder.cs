@@ -42,6 +42,7 @@ namespace BlinkExpress.EditorTools
 
             BuildWalls(root);
             BuildMudAndMushrooms(root);
+            BuildContactTraps(root);
             BuildLogs(root);
             BuildRails(root);
             BuildCoins(root);
@@ -153,6 +154,43 @@ namespace BlinkExpress.EditorTools
             Box(parent, "FinalB", 6f, 0f, 1300f, 22f, 10f, 1303f, BlockColor, true);
             Box(parent, "FinalC", -22f, 0f, 1360f, -2f, 10f, 1363f, BlockColor, true);
             Box(parent, "FinalD", 10f, 0f, 1360f, 22f, 10f, 1363f, BlockColor, true);
+        }
+
+        /// <summary>
+        /// 接触トラップ（粘着する草）。触れると速さが半分になる。
+        /// 配置は仮（デモ版に座標が無い）。道の端のほうに置いて、真ん中の道は通れるようにしてある。
+        /// </summary>
+        private static void BuildContactTraps(Transform root)
+        {
+            var parent = new GameObject("ContactTraps").transform;
+            parent.SetParent(root, false);
+
+            // x、z
+            var traps = new[]
+            {
+                new[] { 12f, 140f }, new[] { -9f, 340f }, new[] { -8f, 610f },
+                new[] { 13f, 880f }, new[] { -10f, 1290f }, new[] { 8f, 1350f },
+            };
+            for (var i = 0; i < traps.Length; i++)
+            {
+                var trap = new GameObject($"ContactTrap{i}");
+                trap.transform.SetParent(parent, false);
+                trap.transform.position = new Vector3(traps[i][0], 0.5f, traps[i][1]);
+                var col = trap.AddComponent<BoxCollider>();
+                col.isTrigger = true;
+                col.size = new Vector3(4f, 1f, 4f);
+                var zone = trap.AddComponent<BlinkExpress.Stage.View.HazardZone>();
+                SetZoneKind(zone, BlinkExpress.Stage.View.HazardZone.Kind.ContactTrap);
+
+                // 見た目の粘着する草（地面の上に薄く敷く、黄緑の円盤。当たりは上の Trigger が担当する）
+                var visual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                visual.name = "Visual";
+                visual.transform.SetParent(trap.transform, false);
+                visual.transform.localPosition = new Vector3(0f, -0.45f, 0f);
+                visual.transform.localScale = new Vector3(4f, 0.05f, 4f);
+                Object.DestroyImmediate(visual.GetComponent<Collider>());
+                visual.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.78f, 0.86f, 0.12f) };
+            }
         }
 
         /// <summary>泥（減速床）と、跳ねるキノコ。</summary>
