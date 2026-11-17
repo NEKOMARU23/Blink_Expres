@@ -59,6 +59,16 @@ namespace BlinkExpress.Enemy.View
         }
 
         /// <summary>
+        /// リスタートのとき、粉砕された敵を元の位置に戻して、また当たるようにする。
+        /// </summary>
+        public void ResetForRun()
+        {
+            _alive = true;
+            transform.position = _home;
+            gameObject.SetActive(true);
+        }
+
+        /// <summary>
         /// 当たりの Trigger コライダーが無ければ、硬さに合わせて付ける。
         /// </summary>
         private void EnsureTrigger()

@@ -34,6 +34,15 @@ namespace BlinkExpress.Stage.View
         }
 
         /// <summary>
+        /// リスタートのとき、取られたコインを元に戻して、また取れるようにする。
+        /// </summary>
+        public void ResetForRun()
+        {
+            _collected = false;
+            gameObject.SetActive(true);
+        }
+
+        /// <summary>
         /// 取る。まだ取っていなければ取り、ステージの集計に数えて、true を返す。
         /// </summary>
         /// <returns>このときに初めて取ったか。</returns>
