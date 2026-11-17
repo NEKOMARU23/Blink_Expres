@@ -32,6 +32,14 @@ namespace BlinkExpress.EditorTools
             }
 
             var root = new GameObject(RootName).transform;
+
+            // 地面は、壁や仕掛けと区別がつくように、少し明るい緑にする
+            var ground = GameObject.Find("Ground");
+            if (ground != null)
+            {
+                ground.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.45f, 0.7f, 0.42f) };
+            }
+
             BuildWalls(root);
             BuildMudAndMushrooms(root);
             BuildLogs(root);
@@ -170,6 +178,15 @@ namespace BlinkExpress.EditorTools
                 col.size = new Vector3(m[1] - m[0], 1f, m[3] - m[2]);
                 var zone = mud.AddComponent<BlinkExpress.Stage.View.HazardZone>();
                 SetZoneKind(zone, BlinkExpress.Stage.View.HazardZone.Kind.Mud);
+
+                // 見た目の泥（地面の上に薄く敷く。当たりは上の Trigger が担当する）
+                var visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                visual.name = "Visual";
+                visual.transform.SetParent(mud.transform, false);
+                visual.transform.localPosition = new Vector3(0f, -0.45f, 0f);
+                visual.transform.localScale = new Vector3(m[1] - m[0], 0.1f, m[3] - m[2]);
+                Object.DestroyImmediate(visual.GetComponent<Collider>());
+                visual.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.48f, 0.34f, 0.2f) };
             }
 
             var mushrooms = new[] { new[] { 12f, 90f }, new[] { 15f, 700f }, new[] { 12f, 1048f }, new[] { -12f, 1048f }, new[] { -15f, 1185f }, new[] { 0f, 1410f } };
@@ -237,6 +254,17 @@ namespace BlinkExpress.EditorTools
                 so.FindProperty("_start").objectReferenceValue = start;
                 so.FindProperty("_end").objectReferenceValue = end;
                 so.ApplyModifiedProperties();
+
+                // 見た目の黄色い棒（円柱を、始点から終点へ向ける。当たりはなく、乗るのは GrindRail が担当する）
+                var bar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                bar.name = "Bar";
+                bar.transform.SetParent(rail.transform, false);
+                var delta = end.position - start.position;
+                bar.transform.position = (start.position + end.position) / 2f;
+                bar.transform.rotation = Quaternion.FromToRotation(Vector3.up, delta.normalized);
+                bar.transform.localScale = new Vector3(0.22f, delta.magnitude / 2f, 0.22f);
+                Object.DestroyImmediate(bar.GetComponent<Collider>());
+                bar.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(1f, 0.82f, 0.2f) };
             }
         }
 

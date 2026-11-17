@@ -211,7 +211,8 @@ namespace BlinkExpress.Stage.View
             canvasGo.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
 
             _hud = CreateText(canvasGo.transform, "Hud", new Vector2(0f, 1f), new Vector2(20f, -20f), TextAnchor.UpperLeft, 22);
-            _resultText = CreateText(canvasGo.transform, "Result", new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), TextAnchor.MiddleCenter, 30);
+            // 結果は画面の上の方に出し、走っている場所（画面の中央）を隠さないようにする
+            _resultText = CreateText(canvasGo.transform, "Result", new Vector2(0.5f, 1f), new Vector2(0f, -110f), TextAnchor.MiddleCenter, 30);
             _resultText.enabled = false;
         }
 
