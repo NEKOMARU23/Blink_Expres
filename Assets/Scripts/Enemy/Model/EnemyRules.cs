@@ -82,6 +82,24 @@ namespace BlinkExpress.Enemy.Model
         }
 
         /// <summary>
+        /// 粉砕したときに、世界が止まる時間（秒）。仕様書「敵・コイン・トラップ」の表の値。
+        /// </summary>
+        /// <param name="tier">硬さ。</param>
+        /// <returns>止まる時間（秒）。</returns>
+        public static float HitStopSec(EnemyTier tier)
+        {
+            switch (tier)
+            {
+                case EnemyTier.Normal:
+                    return 0.09f;
+                case EnemyTier.Hard:
+                    return 0.11f;
+                default:
+                    return 0.07f;
+            }
+        }
+
+        /// <summary>
         /// 粉砕したときに出るコインの数。
         /// </summary>
         /// <param name="tier">硬さ。</param>

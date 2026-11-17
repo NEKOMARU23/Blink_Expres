@@ -1,4 +1,5 @@
 using BlinkExpress.Beacon.View;
+using BlinkExpress.Effects.View;
 using BlinkExpress.Enemy.Model;
 using BlinkExpress.Player.View;
 using UnityEngine;
@@ -38,6 +39,16 @@ namespace BlinkExpress.Enemy.View
 
         /// <summary>まだ粉砕されていないか。</summary>
         public bool IsAlive => _alive;
+
+        /// <summary>敵の色。粉砕の破片の色に使う。見た目が無ければ白。</summary>
+        public Color BodyColor
+        {
+            get
+            {
+                var body = GetComponentInChildren<Renderer>();
+                return body != null ? body.sharedMaterial.color : Color.white;
+            }
+        }
 
         private void Awake()
         {
@@ -85,7 +96,7 @@ namespace BlinkExpress.Enemy.View
                 return;
             }
 
-            var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f);
+            var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f) * HitStopView.CurrentScale;
             var position = transform.position;
             var playerPosition = _player.transform.position;
             position.x = EnemyFlee.StepX(position.x, position.z, playerPosition.x, playerPosition.z, worldDt);

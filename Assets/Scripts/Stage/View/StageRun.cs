@@ -1,3 +1,4 @@
+using BlinkExpress.Effects.View;
 using BlinkExpress.Enemy.View;
 using BlinkExpress.Ghost.Model;
 using BlinkExpress.Ghost.Store;
@@ -60,6 +61,7 @@ namespace BlinkExpress.Stage.View
             _player = FindFirstObjectByType<PlayerView>();
             _ghost = GetComponentInChildren<GhostView>();
             CreateHud();
+            CreateEffects();
         }
 
         private void Start()
@@ -118,6 +120,7 @@ namespace BlinkExpress.Stage.View
             _chaserZ = _chaserStartZ;
             ResetCoins();
             ResetEnemies();
+            ClearEffects();
             _currentTrack = new GhostTrack();
             _recorder = new GhostRecorder(_currentTrack);
             _hasBest = GhostStore.TryLoad(out _bestTrack, out _bestTimeSec);
@@ -235,6 +238,47 @@ namespace BlinkExpress.Stage.View
         /// <summary>
         /// 画面の上に、タイムとコインの数、結果の文字を置く。見た目は仮。
         /// </summary>
+        /// <summary>
+        /// 粉砕の演出（時間停止、破片と輪、飛ぶコイン）を、コードで作る。シーンには置かない。
+        /// すでにシーンにあれば、それを使う。
+        /// </summary>
+        private void CreateEffects()
+        {
+            if (HitStopView.Instance == null)
+            {
+                new GameObject("HitStop").AddComponent<HitStopView>().transform.SetParent(transform, false);
+            }
+
+            if (SmashEffectView.Instance == null)
+            {
+                new GameObject("SmashEffect").AddComponent<SmashEffectView>().transform.SetParent(transform, false);
+            }
+
+            if (CoinFlyView.Instance == null)
+            {
+                new GameObject("CoinFly").AddComponent<CoinFlyView>().transform.SetParent(transform, false);
+            }
+
+            // コインは、左上のコイン表示（COIN の数字のあたり）へ飛ばす
+            CoinFlyView.Instance.SetTarget(new Vector2(230f, 32f));
+        }
+
+        /// <summary>
+        /// リスタートのとき、止まっている時間と飛んでいるコインを消す。
+        /// </summary>
+        private static void ClearEffects()
+        {
+            if (HitStopView.Instance != null)
+            {
+                HitStopView.Instance.Clear();
+            }
+
+            if (CoinFlyView.Instance != null)
+            {
+                CoinFlyView.Instance.Clear();
+            }
+        }
+
         private void CreateHud()
         {
             var canvasGo = new GameObject("StageHud", typeof(Canvas), typeof(CanvasScaler));

@@ -1,5 +1,6 @@
 using BlinkExpress.Beacon.Model;
 using BlinkExpress.Beacon.View;
+using BlinkExpress.Effects.View;
 using BlinkExpress.Enemy.Model;
 using BlinkExpress.Enemy.View;
 using BlinkExpress.Player.Model;
@@ -129,7 +130,8 @@ namespace BlinkExpress.Player.View
             }
 
             // 照準中はゲーム内時間が遅くなるので、プレイヤーの移動もそれに合わせる
-            var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f);
+            // 粉砕で世界が止まっている間は 0 になり、プレイヤーも止まる
+            var worldDt = Time.deltaTime * (_beacon != null ? _beacon.WorldTimeScale : 1f) * HitStopView.CurrentScale;
             _presenter.Tick(input, worldDt);
 
             ApplyBodyHeight();
@@ -201,6 +203,7 @@ namespace BlinkExpress.Player.View
                     StageProgress.Instance.AddCoins(EnemyRules.CoinCount(enemy.Tier));
                 }
 
+                PlaySmashEffects(enemy, center);
                 return;
             }
 
@@ -212,6 +215,28 @@ namespace BlinkExpress.Player.View
 
             away.Normalize();
             _presenter.Bounce(away.x, away.z);
+        }
+
+        /// <summary>
+        /// 粉砕の演出を出す。世界を一瞬止め、破片と衝撃波の輪を出し、出たコインを画面の表示へ飛ばす。
+        /// 演出が置かれていないステージでも、ゲームは動く。
+        /// </summary>
+        private static void PlaySmashEffects(EnemyView enemy, Vector3 center)
+        {
+            if (HitStopView.Instance != null)
+            {
+                HitStopView.Instance.Trigger(EnemyRules.HitStopSec(enemy.Tier));
+            }
+
+            if (SmashEffectView.Instance != null)
+            {
+                SmashEffectView.Instance.Play(center, enemy.Tier, enemy.BodyColor);
+            }
+
+            if (CoinFlyView.Instance != null)
+            {
+                CoinFlyView.Instance.Fly(center, EnemyRules.CoinCount(enemy.Tier));
+            }
         }
 
         /// <summary>
