@@ -35,7 +35,6 @@ namespace BlinkExpress.Player.Model
         private bool _mushroomLatched;
         private bool _obstacleLatched;
         private bool _ceilingLatched;
-        private bool _contactTrapLatched;
 
         /// <summary>壁の上での状態。</summary>
         private enum WallMode
@@ -184,7 +183,6 @@ namespace BlinkExpress.Player.Model
             TryMushroom(input.Hazard);
             TryObstacle(input.Hazard);
             TryCeiling(input.Hazard);
-            TryContactTrap(input.Hazard);
             ClampSpeed();
         }
 
@@ -250,27 +248,6 @@ namespace BlinkExpress.Player.Model
             _obstacleLatched = true;
             var scale = 1f - _settings.ObstacleSlowFactor * hazard.ObstacleIntoDot;
             SetSpeed(Math.Max(_settings.MinSpeedMps, SpeedMps * scale));
-        }
-
-        /// <summary>
-        /// 接触トラップに触れると、速さが減る。触れている間は一度だけ当たり、いったん離れると再び当たる。
-        /// （触れている間ずっと減ると、粘着する草の上で止まってしまうため）
-        /// </summary>
-        private void TryContactTrap(HazardContact hazard)
-        {
-            if (!hazard.OnContactTrap)
-            {
-                _contactTrapLatched = false;
-                return;
-            }
-
-            if (_contactTrapLatched)
-            {
-                return;
-            }
-
-            _contactTrapLatched = true;
-            SetSpeed(Math.Max(_settings.MinSpeedMps, SpeedMps * _settings.ContactTrapSpeedRatio));
         }
 
         /// <summary>
