@@ -79,6 +79,7 @@ namespace BlinkExpress.Player.View
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();
+            LiftBodyMesh();
 
             // 無いと移動もカメラも動かないため、ここで止めて原因を出す
             if (_tuning == null || _chaseCamera == null)
@@ -396,6 +397,28 @@ namespace BlinkExpress.Player.View
             var height = _presenter.IsSliding ? SlideHeightM : StandHeightM;
             _controller.height = height;
             _controller.center = new Vector3(0f, height / 2f, 0f);
+        }
+
+        /// <summary>
+        /// 体の見た目（メッシュ）を、足元の上へ持ち上げる。
+        /// 見た目の中心は足元にあるため、そのままだと下半分が地面に埋まって見える。
+        /// 見た目は子オブジェクトに移し、当たり判定（CharacterController）は今のまま足元を基準にする。
+        /// </summary>
+        private void LiftBodyMesh()
+        {
+            var ownFilter = GetComponent<MeshFilter>();
+            var ownRenderer = GetComponent<MeshRenderer>();
+            if (ownFilter == null || ownRenderer == null)
+            {
+                return;
+            }
+
+            var body = new GameObject("Body");
+            body.transform.SetParent(transform, false);
+            body.transform.localPosition = new Vector3(0f, StandHeightM / 2f, 0f);
+            body.AddComponent<MeshFilter>().sharedMesh = ownFilter.sharedMesh;
+            body.AddComponent<MeshRenderer>().sharedMaterial = ownRenderer.sharedMaterial;
+            ownRenderer.enabled = false;
         }
 
         /// <summary>
